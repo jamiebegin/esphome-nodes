@@ -1,0 +1,83 @@
+esphome:
+  name: dogcollar
+  platform: ESP8266
+  board: nodemcuv2
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pwd
+  fast_connect: False
+  reboot_timeout: 15min
+  domain: !secret domain
+  manual_ip:
+    static_ip: 192.168.5.249
+    gateway: 192.168.5.1
+    subnet: 255.255.255.0
+
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: "America/Detroit"
+    servers: !secret ntp_server
+
+logger:
+
+mqtt:
+  broker: !secret mqtt_broker
+
+ota:
+
+binary_sensor:
+  - platform: status
+    name: "Dog Collar Remote Status"
+    
+sensor:
+  - platform: wifi_signal
+    name: "Dog Collar Remote Signal"
+    update_interval: 5min
+
+switch:
+  - platform: restart
+    name: "Dog Collar Remote Restart"  
+  - platform: gpio
+    pin: 5
+    id: vibrate
+    interlock: [beeper, shock]
+    inverted: yes
+    restore_mode: ALWAYS_OFF
+    interlock_wait_time: 3s
+  - platform: gpio
+    pin: 4
+    id: shock
+    interlock: [vibrate, beeper]
+    inverted: yes
+    restore_mode: ALWAYS_OFF
+    interlock_wait_time: 3s
+  - platform: gpio
+    pin: 0
+    id: beeper
+    interlock: [vibrate, shock]
+    inverted: yes
+    restore_mode: ALWAYS_OFF
+    interlock_wait_time: 3s
+  - platform: template
+    name: "Beep"
+    icon: "mdi:bell"
+    turn_on_action:
+    - switch.turn_on: beeper
+    - delay: 250ms
+    - switch.turn_off: beeper    
+  - platform: template
+    name: "Vibrate"
+    icon: "mdi:vibrate"
+    turn_on_action:
+    - switch.turn_on: vibrate
+    - delay: 250ms
+    - switch.turn_off: vibrate
+  - platform: template
+    name: "Shock"
+    icon: "mdi:flash"
+    turn_on_action:
+    - switch.turn_on: shock
+    - delay: 250ms
+    - switch.turn_off: shock

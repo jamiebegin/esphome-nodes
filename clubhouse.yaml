@@ -1,0 +1,88 @@
+esphome:
+  name: clubhouse
+  platform: ESP8266
+  board: nodemcuv2
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pwd
+  fast_connect: False
+  reboot_timeout: 15min
+  domain: !secret domain
+  manual_ip:
+    static_ip: 192.168.5.138
+    gateway: 192.168.5.1
+    subnet: 255.255.255.0
+
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: "America/Detroit"
+    servers: !secret ntp_server
+
+logger:
+
+mqtt:
+  broker: !secret mqtt_broker
+
+ota:
+
+switch:
+  - platform: restart
+    name: "Clubhouse Env Sensor Restart"
+
+binary_sensor:
+  - platform: status
+    name: "Clubhouse Env Sensor Status"
+
+i2c:
+  scan: True
+  id: bus_b
+
+sensor:
+  - platform: wifi_signal
+    name: "Clubhouse Env Sensor Signal"
+    update_interval: 60s
+  - platform: bme280
+    id: bme280clubhouse
+    temperature:
+      name: "Clubhouse Temperature"
+      id: clubhouse_temp
+      oversampling: 16x
+      unit_of_measurement: "°C"      
+    pressure:
+      name: "Clubhouse Pressure"
+      id: clubhouse_pressure
+    humidity:
+      name: "Clubhouse Humidity"
+      id: clubhouse_humid
+    address: 0x77
+    update_interval: 5min
+    # This sgp30 config doesn't work with the current relase of ESPHome (Version: 1.14.5)
+    # due to errors in the config for the baseline values. Need to grab a patch from the 
+    # develop branch.
+  - platform: sgp30
+    baseline:
+      eco2_baseline: 0x9076
+      tvoc_baseline: 0x9144
+    eco2:
+      name: "Clubhouse eCO2"
+      accuracy_decimals: 1
+      filters:
+        - median:
+            window_size: 15
+            send_every: 60
+            send_first_at: 5      
+    tvoc:
+      name: "Clubhouse TVOC"
+      accuracy_decimals: 1
+      filters:
+        - median:
+            window_size: 15
+            send_every: 60
+            send_first_at: 5
+    address: 0x58
+    update_interval: 1s
+    compensation:
+      temperature_source: clubhouse_temp
+      humidity_source: clubhouse_humid

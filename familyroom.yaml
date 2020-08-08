@@ -1,0 +1,97 @@
+esphome:
+  name: familyroom
+  platform: ESP8266
+  board: huzzah
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pwd
+  fast_connect: False
+  reboot_timeout: 15min
+  domain: !secret domain
+  manual_ip:
+    static_ip: 192.168.5.132
+    gateway: 192.168.5.1
+    subnet: 255.255.255.0
+
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: "America/Detroit"
+    servers: !secret ntp_server
+
+logger:
+
+mqtt:
+  broker: !secret mqtt_broker
+
+ota:
+
+switch:
+  - platform: restart
+    name: "Family Room Env Sensor Restart"
+
+i2c:
+  scan: True
+  sda: 4
+  scl: 5
+
+binary_sensor:
+  - platform: status
+    name: "Family Room Env Sensor Status"
+
+sensor:
+  - platform: wifi_signal
+    name: "Family Room Env Sensor Signal"
+    update_interval: 60s
+  - platform: scd30
+    co2:
+      name: "Family Room CO2"
+      accuracy_decimals: 1
+      filters:
+        - median:
+            window_size: 5
+            send_every: 12
+            send_first_at: 5      
+    temperature:
+      name: "Family Room Temperature"
+      id: family_temp
+      accuracy_decimals: 1
+      filters:
+        - median:
+            window_size: 15
+            send_every: 60
+            send_first_at: 5            
+    humidity:
+      name: "Family Room Humidity"
+      id: family_humid
+      accuracy_decimals: 1
+      filters:
+        - median:
+            window_size: 15
+            send_every: 60
+            send_first_at: 5            
+    address: 0x61
+    update_interval: 5s
+  - platform: sgp30
+    eco2:
+      name: "Family Room eCO2"
+      accuracy_decimals: 1
+      filters:
+        - median:
+            window_size: 15
+            send_every: 60
+            send_first_at: 5      
+    tvoc:
+      name: "Family Room TVOC"
+      accuracy_decimals: 1
+      filters:
+        - median:
+            window_size: 15
+            send_every: 60
+            send_first_at: 5
+    address: 0x58
+    update_interval: 1s
+    compensation:
+      temperature_source: family_temp
+      humidity_source: family_humid
