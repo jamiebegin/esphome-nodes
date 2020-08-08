@@ -1,0 +1,31 @@
+{
+  "storage_version": 1,
+  "name": "bathroom",
+  "comment": null,
+  "esphome_version": "1.14.5",
+  "src_version": 1,
+  "arduino_version": "espressif8266@2.2.3",
+  "address": "192.168.5.110",
+  "esp_platform": "ESP8266",
+  "board": "nodemcuv2",
+  "build_path": ".\\bathroom",
+  "firmware_bin_path": ".\\bathroom\\.pioenvs\\bathroom\\firmware.bin",
+  "loaded_integrations": [
+    "async_tcp",
+    "binary_sensor",
+    "bme280",
+    "esphome",
+    "i2c",
+    "json",
+    "logger",
+    "mqtt",
+    "network",
+    "ota",
+    "restart",
+    "sensor",
+    "status",
+    "switch",
+    "wifi",
+    "wifi_signal"
+  ]
+}

@@ -32,7 +32,6 @@ ota:
 switch:
   - platform: restart
     name: "Water Softener Sensor Restart"
-
 binary_sensor:
   - platform: status
     name: "Water Softener Status"
@@ -40,6 +39,7 @@ sensor:
   - platform: wifi_signal
     name: "Water Softener Signal"
     update_interval: 5min
+
   - platform: ultrasonic
     trigger_pin: A1
     echo_pin: A0

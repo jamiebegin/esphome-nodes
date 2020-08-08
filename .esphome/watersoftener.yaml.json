@@ -1,0 +1,32 @@
+{
+  "storage_version": 1,
+  "name": "watersoftener",
+  "comment": null,
+  "esphome_version": "1.14.5",
+  "src_version": 1,
+  "arduino_version": "espressif32@1.12.1",
+  "address": "192.168.5.134",
+  "esp_platform": "ESP32",
+  "board": "featheresp32",
+  "build_path": ".\\watersoftener",
+  "firmware_bin_path": ".\\watersoftener\\.pioenvs\\watersoftener\\firmware.bin",
+  "loaded_integrations": [
+    "async_tcp",
+    "binary_sensor",
+    "esphome",
+    "json",
+    "logger",
+    "mqtt",
+    "network",
+    "ota",
+    "restart",
+    "sensor",
+    "sntp",
+    "status",
+    "switch",
+    "time",
+    "ultrasonic",
+    "wifi",
+    "wifi_signal"
+  ]
+}
