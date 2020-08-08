@@ -1,0 +1,99 @@
+esphome:
+  name: ro_water
+  platform: ESP32
+  board: featheresp32
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pwd
+  fast_connect: False
+  reboot_timeout: 15min
+  domain: !secret domain
+  manual_ip:
+    static_ip: 192.168.5.179
+    gateway: 192.168.5.1
+    subnet: 255.255.255.0
+    dns1: 192.168.7.50
+
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: "America/Detroit"
+    servers: !secret ntp_server
+
+switch:
+  - platform: restart
+    name: "RO Sensor Restart"
+
+i2c:
+  scan: True
+  sda: 23
+  scl: 22
+
+binary_sensor:
+  - platform: status
+    name: "RO Sensor Status"
+
+ads1115:
+  - address: 0x48
+  
+sensor:
+  - platform: wifi_signal
+    name: "RO Sensor Signal"
+    update_interval: 15min
+
+  - platform: ads1115
+    multiplexer: 'A0_GND'
+    gain: 2.048
+    name: "To RO"
+    update_interval: 1h
+    unit_of_measurement: "ppm"
+    icon: "mdi:pipe"
+    accuracy_decimals: 0    
+    filters:
+      - calibrate_linear:
+        - 0.0163 -> 0.0
+        - 0.0913 -> 25.0
+        - 0.1345 -> 50.0
+        - 0.2593 -> 100.0
+        - 0.5205 -> 250.0
+        - 0.9985 -> 500.0
+        - 1.3880 -> 750.0
+        - 1.7487 -> 1000.0
+      - median:
+          window_size: 23
+          send_every: 24
+          send_first_at: 1
+ 
+  - platform: ads1115
+    multiplexer: 'A1_GND'
+    gain: 2.048
+    name: "From RO"
+    update_interval: 1h
+    unit_of_measurement: "ppm"
+    icon: "mdi:cup-water"
+    accuracy_decimals: 0      
+    filters:
+      - calibrate_linear:
+        - 0.016 -> 0.0
+        - 0.0881 -> 25.0
+        - 0.1257 -> 50.0
+        - 0.2350 -> 100.0
+        - 0.465 -> 250.0
+        - 0.874 -> 500.0
+        - 1.316 -> 750.0
+        - 1.566 -> 1000.0
+      - median:
+          window_size: 23
+          send_every: 24
+          send_first_at: 1
+          
+captive_portal:
+
+# Enable logging
+logger:
+
+mqtt:
+  broker: !secret mqtt_broker
+
+ota:
