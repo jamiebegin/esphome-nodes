@@ -21,6 +21,14 @@ time:
     timezone: "America/Detroit"
     servers: !secret ntp_server
 
+# Enable logging
+logger:
+
+mqtt:
+  broker: !secret mqtt_broker
+
+ota:
+
 switch:
   - platform: restart
     name: "RO Sensor Restart"
@@ -87,13 +95,3 @@ sensor:
           window_size: 23
           send_every: 24
           send_first_at: 1
-          
-captive_portal:
-
-# Enable logging
-logger:
-
-mqtt:
-  broker: !secret mqtt_broker
-
-ota:
