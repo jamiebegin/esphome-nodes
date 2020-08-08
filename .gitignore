@@ -125,5 +125,6 @@ dmypy.json
 .pyre/
 
 # ESPHome
+.esphome
 secrets.yaml
 */*
