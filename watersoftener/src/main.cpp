@@ -16,13 +16,15 @@ sntp::SNTPComponent *sntp_time;
 restart::RestartSwitch *restart_restartswitch;
 status::StatusBinarySensor *status_statusbinarysensor;
 wifi_signal::WiFiSignalSensor *wifi_signal_wifisignalsensor;
+uptime::UptimeSensor *uptime_uptimesensor;
 ultrasonic::UltrasonicSensorComponent *ultrasonic_ultrasonicsensorcomponent;
 mqtt::MQTTSwitchComponent *mqtt_mqttswitchcomponent;
 mqtt::MQTTBinarySensorComponent *mqtt_mqttbinarysensorcomponent;
 mqtt::MQTTSensorComponent *mqtt_mqttsensorcomponent;
+mqtt::MQTTSensorComponent *mqtt_mqttsensorcomponent_2;
 sensor::LambdaFilter *sensor_lambdafilter;
 sensor::MedianFilter *sensor_medianfilter;
-mqtt::MQTTSensorComponent *mqtt_mqttsensorcomponent_2;
+mqtt::MQTTSensorComponent *mqtt_mqttsensorcomponent_3;
 // ========== AUTO GENERATED INCLUDE BLOCK END ==========="
 
 void setup() {
@@ -33,22 +35,22 @@ void setup() {
   //   name: watersoftener
   //   platform: ESP32
   //   board: featheresp32
-  //   arduino_version: espressif32@1.12.1
   //   build_path: watersoftener
-  //   includes: []
-  //   libraries: []
+  //   arduino_version: espressif32@1.12.1
   //   platformio_options: {}
+  //   libraries: []
+  //   includes: []
   App.pre_setup("watersoftener", __DATE__ ", " __TIME__);
   // time:
   // switch:
   // binary_sensor:
   // logger:
-  //   logs: {}
-  //   baud_rate: 115200
   //   id: logger_logger
-  //   level: DEBUG
   //   tx_buffer_size: 512
+  //   baud_rate: 115200
   //   hardware_uart: UART0
+  //   logs: {}
+  //   level: DEBUG
   logger_logger = new logger::Logger(115200, 512, logger::UART_SELECTION_UART0);
   logger_logger->pre_setup();
   App.register_component(logger_logger);
@@ -62,13 +64,13 @@ void setup() {
   //     subnet: 255.255.255.0
   //     dns1: 192.168.7.50
   //     dns2: 0.0.0.0
-  //   power_save_mode: LIGHT
   //   id: wifi_wificomponent
+  //   power_save_mode: LIGHT
   //   networks:
   //   - ssid: !secret 'wifi_ssid'
   //     password: !secret 'wifi_pwd'
-  //     priority: 0.0
   //     id: wifi_wifiap
+  //     priority: 0.0
   //   use_address: 192.168.5.134
   wifi_wificomponent = new wifi::WiFiComponent();
   wifi_wificomponent->set_use_address("192.168.5.134");
@@ -89,9 +91,9 @@ void setup() {
   wifi_wificomponent->set_fast_connect(false);
   App.register_component(wifi_wificomponent);
   // ota:
-  //   port: 3232
   //   id: ota_otacomponent
   //   safe_mode: true
+  //   port: 3232
   //   password: ''
   ota_otacomponent = new ota::OTAComponent();
   ota_otacomponent->set_port(3232);
@@ -100,16 +102,16 @@ void setup() {
   ota_otacomponent->start_safe_mode();
   // mqtt:
   //   broker: !secret 'mqtt_broker'
-  //   reboot_timeout: 15min
-  //   username: ''
-  //   port: 1883
-  //   keepalive: 15s
-  //   topic_prefix: watersoftener
-  //   discovery_prefix: homeassistant
   //   id: mqtt_mqttclientcomponent
+  //   username: ''
   //   discovery: true
-  //   password: ''
+  //   reboot_timeout: 15min
+  //   port: 1883
   //   discovery_retain: true
+  //   password: ''
+  //   topic_prefix: watersoftener
+  //   keepalive: 15s
+  //   discovery_prefix: homeassistant
   //   birth_message:
   //     topic: watersoftener/status
   //     payload: online
@@ -177,32 +179,45 @@ void setup() {
   // switch.restart:
   //   platform: restart
   //   name: Water Softener Sensor Restart
-  //   mqtt_id: mqtt_mqttswitchcomponent
-  //   icon: mdi:restart
   //   id: restart_restartswitch
+  //   icon: mdi:restart
+  //   mqtt_id: mqtt_mqttswitchcomponent
   restart_restartswitch = new restart::RestartSwitch();
   App.register_component(restart_restartswitch);
   // binary_sensor.status:
   //   platform: status
   //   name: Water Softener Status
-  //   mqtt_id: mqtt_mqttbinarysensorcomponent
-  //   device_class: connectivity
   //   id: status_statusbinarysensor
+  //   device_class: connectivity
+  //   mqtt_id: mqtt_mqttbinarysensorcomponent
   status_statusbinarysensor = new status::StatusBinarySensor();
   App.register_component(status_statusbinarysensor);
   // sensor.wifi_signal:
   //   platform: wifi_signal
-  //   name: Water Softener Signal
+  //   name: Water Softener Sensor Signal
   //   update_interval: 5min
-  //   icon: mdi:wifi
-  //   force_update: false
   //   unit_of_measurement: dB
+  //   force_update: false
+  //   icon: mdi:wifi
   //   mqtt_id: mqtt_mqttsensorcomponent
-  //   accuracy_decimals: 0
   //   id: wifi_signal_wifisignalsensor
+  //   accuracy_decimals: 0
   wifi_signal_wifisignalsensor = new wifi_signal::WiFiSignalSensor();
   wifi_signal_wifisignalsensor->set_update_interval(300000);
   App.register_component(wifi_signal_wifisignalsensor);
+  // sensor.uptime:
+  //   platform: uptime
+  //   name: Water Softener Sensor Uptime
+  //   unit_of_measurement: s
+  //   force_update: false
+  //   icon: mdi:timer
+  //   mqtt_id: mqtt_mqttsensorcomponent_2
+  //   id: uptime_uptimesensor
+  //   update_interval: 60s
+  //   accuracy_decimals: 0
+  uptime_uptimesensor = new uptime::UptimeSensor();
+  uptime_uptimesensor->set_update_interval(60000);
+  App.register_component(uptime_uptimesensor);
   // sensor.ultrasonic:
   //   platform: ultrasonic
   //   trigger_pin:
@@ -230,7 +245,7 @@ void setup() {
   //   pulse_time: 10us
   //   force_update: false
   //   timeout: 2.0
-  //   mqtt_id: mqtt_mqttsensorcomponent_2
+  //   mqtt_id: mqtt_mqttsensorcomponent_3
   //   id: ultrasonic_ultrasonicsensorcomponent
   ultrasonic_ultrasonicsensorcomponent = new ultrasonic::UltrasonicSensorComponent();
   ultrasonic_ultrasonicsensorcomponent->set_update_interval(30000);
@@ -247,13 +262,21 @@ void setup() {
   mqtt_mqttbinarysensorcomponent = new mqtt::MQTTBinarySensorComponent(status_statusbinarysensor);
   App.register_component(mqtt_mqttbinarysensorcomponent);
   App.register_sensor(wifi_signal_wifisignalsensor);
-  wifi_signal_wifisignalsensor->set_name("Water Softener Signal");
+  wifi_signal_wifisignalsensor->set_name("Water Softener Sensor Signal");
   wifi_signal_wifisignalsensor->set_unit_of_measurement("dB");
   wifi_signal_wifisignalsensor->set_icon("mdi:wifi");
   wifi_signal_wifisignalsensor->set_accuracy_decimals(0);
   wifi_signal_wifisignalsensor->set_force_update(false);
   mqtt_mqttsensorcomponent = new mqtt::MQTTSensorComponent(wifi_signal_wifisignalsensor);
   App.register_component(mqtt_mqttsensorcomponent);
+  App.register_sensor(uptime_uptimesensor);
+  uptime_uptimesensor->set_name("Water Softener Sensor Uptime");
+  uptime_uptimesensor->set_unit_of_measurement("s");
+  uptime_uptimesensor->set_icon("mdi:timer");
+  uptime_uptimesensor->set_accuracy_decimals(0);
+  uptime_uptimesensor->set_force_update(false);
+  mqtt_mqttsensorcomponent_2 = new mqtt::MQTTSensorComponent(uptime_uptimesensor);
+  App.register_component(mqtt_mqttsensorcomponent_2);
   App.register_sensor(ultrasonic_ultrasonicsensorcomponent);
   ultrasonic_ultrasonicsensorcomponent->set_name("Brine Tank 1");
   ultrasonic_ultrasonicsensorcomponent->set_unit_of_measurement("%");
@@ -265,8 +288,8 @@ void setup() {
   });
   sensor_medianfilter = new sensor::MedianFilter(25, 30, 5);
   ultrasonic_ultrasonicsensorcomponent->set_filters({sensor_lambdafilter, sensor_medianfilter});
-  mqtt_mqttsensorcomponent_2 = new mqtt::MQTTSensorComponent(ultrasonic_ultrasonicsensorcomponent);
-  App.register_component(mqtt_mqttsensorcomponent_2);
+  mqtt_mqttsensorcomponent_3 = new mqtt::MQTTSensorComponent(ultrasonic_ultrasonicsensorcomponent);
+  App.register_component(mqtt_mqttsensorcomponent_3);
   ultrasonic_ultrasonicsensorcomponent->set_trigger_pin(new GPIOPin(25, OUTPUT, false));
   ultrasonic_ultrasonicsensorcomponent->set_echo_pin(new GPIOPin(26, INPUT, false));
   ultrasonic_ultrasonicsensorcomponent->set_timeout_us(11661.807580174927f);

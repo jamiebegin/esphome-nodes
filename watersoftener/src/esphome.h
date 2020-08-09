@@ -27,6 +27,7 @@
 #include "esphome/components/time/automation.h"
 #include "esphome/components/time/real_time_clock.h"
 #include "esphome/components/ultrasonic/ultrasonic_sensor.h"
+#include "esphome/components/uptime/uptime_sensor.h"
 #include "esphome/components/wifi/wifi_component.h"
 #include "esphome/components/wifi_signal/wifi_signal_sensor.h"
 #include "esphome/core/application.h"

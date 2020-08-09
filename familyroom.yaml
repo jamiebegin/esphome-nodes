@@ -44,6 +44,8 @@ sensor:
   - platform: wifi_signal
     name: "Family Room Env Sensor Signal"
     update_interval: 60s
+  - platform: uptime
+    name: Family Room Env Sensor Uptime    
   - platform: scd30
     co2:
       name: "Family Room CO2"

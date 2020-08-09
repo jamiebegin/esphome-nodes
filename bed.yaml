@@ -39,6 +39,8 @@ sensor:
   - platform: wifi_signal
     name: "Bed Sensor Signal"
     update_interval: 5min
+  - platform: uptime
+    name: Bed Sensor Uptime    
   - platform: hx711
     name: "Bed Weight"
     dout_pin: D7

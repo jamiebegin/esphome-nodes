@@ -8,8 +8,8 @@
   "address": "192.168.5.134",
   "esp_platform": "ESP32",
   "board": "featheresp32",
-  "build_path": ".\\watersoftener",
-  "firmware_bin_path": ".\\watersoftener\\.pioenvs\\watersoftener\\firmware.bin",
+  "build_path": "watersoftener",
+  "firmware_bin_path": "watersoftener\\.pioenvs\\watersoftener\\firmware.bin",
   "loaded_integrations": [
     "async_tcp",
     "binary_sensor",
@@ -26,6 +26,7 @@
     "switch",
     "time",
     "ultrasonic",
+    "uptime",
     "wifi",
     "wifi_signal"
   ]

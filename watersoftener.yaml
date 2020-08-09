@@ -21,7 +21,6 @@ time:
     timezone: "America/Detroit"
     servers: !secret ntp_server
 
-# Enable logging
 logger:
 
 mqtt:
@@ -37,9 +36,10 @@ binary_sensor:
     name: "Water Softener Status"
 sensor:
   - platform: wifi_signal
-    name: "Water Softener Signal"
+    name: "Water Softener Sensor Signal"
     update_interval: 5min
-
+  - platform: uptime
+    name: Water Softener Sensor Uptime  
   - platform: ultrasonic
     trigger_pin: A1
     echo_pin: A0

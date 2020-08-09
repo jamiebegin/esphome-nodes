@@ -48,7 +48,8 @@ sensor:
   - platform: wifi_signal
     name: "RO Sensor Signal"
     update_interval: 15min
-
+  - platform: uptime
+    name: RO Sensor Uptime
   - platform: ads1115
     multiplexer: 'A0_GND'
     gain: 2.048

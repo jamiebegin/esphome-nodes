@@ -35,10 +35,12 @@ sensor:
   - platform: wifi_signal
     name: "Dog Collar Remote Signal"
     update_interval: 5min
-
+  - platform: uptime
+    name: Dog Collar Remote Uptime
+    
 switch:
   - platform: restart
-    name: "Dog Collar Remote Restart"  
+    name: "Dog Collar Remote Restart"
   - platform: gpio
     pin: 5
     id: vibrate

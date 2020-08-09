@@ -43,6 +43,8 @@ sensor:
   - platform: wifi_signal
     name: "Clubhouse Env Sensor Signal"
     update_interval: 60s
+  - platform: uptime
+    name: Clubhouse Env Sensor Uptime    
   - platform: bme280
     id: bme280clubhouse
     temperature:
