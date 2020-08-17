@@ -50,14 +50,17 @@ sensor:
     temperature:
       name: "Clubhouse Temperature"
       id: clubhouse_temp
+      expire_after: 8h
       oversampling: 16x
       unit_of_measurement: "°C"      
     pressure:
       name: "Clubhouse Pressure"
       id: clubhouse_pressure
+      expire_after: 8h
     humidity:
       name: "Clubhouse Humidity"
       id: clubhouse_humid
+      expire_after: 8h
     address: 0x77
     update_interval: 5min
     # This sgp30 config doesn't work with the current relase of ESPHome (Version: 1.14.5)
@@ -70,6 +73,7 @@ sensor:
     eco2:
       name: "Clubhouse eCO2"
       accuracy_decimals: 1
+      expire_after: 8h
       filters:
         - median:
             window_size: 15
@@ -78,6 +82,7 @@ sensor:
     tvoc:
       name: "Clubhouse TVOC"
       accuracy_decimals: 1
+      expire_after: 8h
       filters:
         - median:
             window_size: 15
@@ -88,3 +93,87 @@ sensor:
     compensation:
       temperature_source: clubhouse_temp
       humidity_source: clubhouse_humid
+  - platform: sps30
+    pm_1_0:
+      name: "Clubhouse PM <1µm Weight concentration"
+      id: "clubhouse_PM_1_0"
+      expire_after: 8h
+      filters:
+        - median:
+            window_size: 45
+            send_every: 30
+            send_first_at: 5      
+    pm_2_5:
+      name: "Clubhouse PM <2.5µm Weight concentration"
+      id: "clubhouse_PM_2_5"
+      expire_after: 8h
+      filters:
+        - median:
+            window_size: 45
+            send_every: 30
+            send_first_at: 5   
+    pm_4_0:
+      name: "Clubhouse PM <4µm Weight concentration"
+      id: "clubhouse_PM_4_0"
+      expire_after: 8h
+      filters:
+        - median:
+            window_size: 45
+            send_every: 30
+            send_first_at: 5   
+    pm_10_0:
+      name: "Clubhouse PM <10µm Weight concentration"
+      id: "clubhouse_PM_10_0"
+      expire_after: 8h
+      filters:
+        - median:
+            window_size: 45
+            send_every: 30
+            send_first_at: 5   
+    pmc_0_5:
+      name: "Clubhouse PM <0.5µm Number concentration"
+      id: "clubhouse_PMC_0_5"
+      expire_after: 8h
+      filters:
+        - median:
+            window_size: 45
+            send_every: 30
+            send_first_at: 5   
+    pmc_1_0:
+      name: "Clubhouse PM <1µm Number concentration"
+      id: "clubhouse_PMC_1_0"
+      expire_after: 8h
+      filters:
+        - median:
+            window_size: 45
+            send_every: 30
+            send_first_at: 5   
+    pmc_2_5:
+      name: "Clubhouse PM <2.5µm Number concentration"
+      id: "clubhouse_PMC_2_5"
+      expire_after: 8h
+      filters:
+        - median:
+            window_size: 45
+            send_every: 30
+            send_first_at: 5   
+    pmc_4_0:
+      name: "Clubhouse PM <4µm Number concentration"
+      id: "clubhouse_PMC_4_0"
+      expire_after: 8h
+      filters:
+        - median:
+            window_size: 45
+            send_every: 30
+            send_first_at: 5   
+    pmc_10_0:
+      name: "Clubhouse PM <10µm Number concentration"
+      id: "clubhouse_PMC_10_0"
+      expire_after: 8h
+      filters:
+        - median:
+            window_size: 45
+            send_every: 30
+            send_first_at: 5   
+    address: 0x69
+    update_interval: 10s      
