@@ -1,0 +1,23 @@
+esphome:
+  name: smartswitch
+  platform: ESP32
+  board: nodemcu-32s
+
+wifi:
+  ssid: "rook"
+  password: "IWantMyPrivacy!"
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Smartswitch Fallback Hotspot"
+    password: "D2BGEQrtfm4v"
+
+captive_portal:
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+
+ota:

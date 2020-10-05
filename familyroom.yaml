@@ -97,3 +97,87 @@ sensor:
     compensation:
       temperature_source: family_temp
       humidity_source: family_humid
+  - platform: sps30
+    pm_1_0:
+      name: "Family Room PM <1µm Weight concentration"
+      id: "family_room_PM_1_0"
+      expire_after: 8h
+      filters:
+        - median:
+            window_size: 45
+            send_every: 30
+            send_first_at: 5      
+    pm_2_5:
+      name: "Family Room PM <2.5µm Weight concentration"
+      id: "family_room_PM_2_5"
+      expire_after: 8h
+      filters:
+        - median:
+            window_size: 45
+            send_every: 30
+            send_first_at: 5   
+    pm_4_0:
+      name: "Family Room PM <4µm Weight concentration"
+      id: "family_room_PM_4_0"
+      expire_after: 8h
+      filters:
+        - median:
+            window_size: 45
+            send_every: 30
+            send_first_at: 5   
+    pm_10_0:
+      name: "Family Room PM <10µm Weight concentration"
+      id: "family_room_PM_10_0"
+      expire_after: 8h
+      filters:
+        - median:
+            window_size: 45
+            send_every: 30
+            send_first_at: 5   
+    pmc_0_5:
+      name: "Family Room PM <0.5µm Number concentration"
+      id: "family_room_PMC_0_5"
+      expire_after: 8h
+      filters:
+        - median:
+            window_size: 45
+            send_every: 30
+            send_first_at: 5   
+    pmc_1_0:
+      name: "Family Room PM <1µm Number concentration"
+      id: "family_room_PMC_1_0"
+      expire_after: 8h
+      filters:
+        - median:
+            window_size: 45
+            send_every: 30
+            send_first_at: 5   
+    pmc_2_5:
+      name: "Family Room PM <2.5µm Number concentration"
+      id: "family_room_PMC_2_5"
+      expire_after: 8h
+      filters:
+        - median:
+            window_size: 45
+            send_every: 30
+            send_first_at: 5   
+    pmc_4_0:
+      name: "Family Room PM <4µm Number concentration"
+      id: "family_room_PMC_4_0"
+      expire_after: 8h
+      filters:
+        - median:
+            window_size: 45
+            send_every: 30
+            send_first_at: 5   
+    pmc_10_0:
+      name: "Family Room PM <10µm Number concentration"
+      id: "family_room_PMC_10_0"
+      expire_after: 8h
+      filters:
+        - median:
+            window_size: 45
+            send_every: 30
+            send_first_at: 5   
+    address: 0x69
+    update_interval: 10s        
