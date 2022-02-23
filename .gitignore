@@ -128,3 +128,7 @@ dmypy.json
 .esphome/
 secrets.yaml
 */*
+watersoftener/.pioenvs/watersoftener/.sconsign38.db.dblite
+*.dblite
+*.bin
+*.elf

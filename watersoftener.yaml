@@ -38,6 +38,7 @@ sensor:
   - platform: wifi_signal
     name: "Water Softener Sensor Signal"
     update_interval: 5min
+    expire_after: 1h
   - platform: uptime
     name: Water Softener Sensor Uptime  
   - platform: ultrasonic
@@ -48,8 +49,10 @@ sensor:
     update_interval: 30s
     unit_of_measurement: "%"
     accuracy_decimals: 0
+    expire_after: 24h
     filters:
       - lambda: return (1.0668-x)*(100/1.0668);
+      - delta: 3
       - median:
           window_size: 25
           send_every: 30

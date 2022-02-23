@@ -1,0 +1,90 @@
+esphome:
+  name: energy_monitor
+  platform: ESP32
+  board: nodemcu-32s
+
+wifi:
+  ssid: "rook"
+  password: "IWantMyPrivacy!"
+  fast_connect: True
+  reboot_timeout: 15min
+  
+  manual_ip:
+    static_ip: 192.168.5.209
+    gateway: 192.168.5.1
+    subnet: 255.255.255.0
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Energy Fallback Hotspot"
+    password: "E12bcaWpvNMD"
+
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: "America/Detroit"
+    servers: !secret ntp_server
+
+switch:
+  - platform: restart
+    name: "Energy Monitor Restart"
+
+binary_sensor:
+  - platform: status
+    name: "Energy Monitor Status"
+
+captive_portal:
+
+# Enable logging
+logger:
+
+mqtt:
+  broker: 192.168.7.60
+
+ota:
+
+
+# Example configuration entry for split single phase meter
+spi:
+  clk_pin: 18 #P18
+  miso_pin: 19 #P19
+  mosi_pin: 23  #P23
+
+sensor:
+  - platform: wifi_signal
+    name: "Energy Monitor Signal"
+    update_interval: 60s
+  - platform: atm90e32
+    cs_pin: 5
+    phase_a:
+      voltage:
+        name: "Energy Line Voltage A"
+      current:
+        name: "Energy Current A"
+      power:
+        name: "Energy Active Power A"
+      reactive_power:
+        name: "Energy Reactive Power A"
+      power_factor:
+        name: "Energy Power Factor A"
+      gain_voltage: 3920
+      gain_ct: 39473
+    phase_c:
+      current:
+        name: "Energy Current B"
+      power:
+        name: "Energy Active Power B"
+      reactive_power:
+        name: "Energy Reactive Power B"
+      power_factor:
+        name: "Energy Power Factor B"
+      gain_voltage: 3920
+      gain_ct: 39473
+    frequency:
+      name: "Energy Line Frequency"
+    chip_temperature:
+      name: "Energy Chip Temperature"
+    line_frequency: 60Hz
+    current_phases: 2
+    gain_pga: 2X
+    update_interval: 60s

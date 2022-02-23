@@ -1,0 +1,55 @@
+esphome:
+  name: water
+  platform: ESP32
+  board: featheresp32
+
+wifi:
+  ssid: "rook"
+  password: "IWantMyPrivacy!"
+  fast_connect: True
+  reboot_timeout: 15min 
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Water Fallback Hotspot"
+    password: "E12bcaWpvNMD"
+
+binary_sensor:
+  - platform: status
+    name: "Water Sensor Status"
+
+sensor:
+  - platform: wifi_signal
+    name: "Water Sensor Signal"
+    update_interval: 60s
+  - platform: mqtt_subscribe
+    name: "Injection Pump"
+    id: injection_pump_mqtt
+    topic: irrigation/injection_pump
+
+switch:
+#
+#  - platform: template
+#    name: "Injection Pump"
+#    icon: "mdi:bell"
+#    turn_on_action:
+#    - switch.turn_on: injection_pump_relay
+#    - switch.turn_off: injection_pump_relay
+
+  - platform: gpio
+    pin: A0
+    name: "Injection Pump Relay"
+    id: injection_pump_relay
+    inverted: no
+    restore_mode: ALWAYS_OFF    
+    
+captive_portal:
+
+# Enable logging
+logger:
+
+mqtt:
+  broker: 192.168.7.60
+
+ota:
+    
