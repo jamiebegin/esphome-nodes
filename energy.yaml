@@ -4,20 +4,24 @@ esphome:
   board: nodemcu-32s
 
 wifi:
-  ssid: "rook"
-  password: "IWantMyPrivacy!"
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pwd
   fast_connect: True
   reboot_timeout: 15min
+  domain: !secret domain
   
   manual_ip:
     static_ip: 192.168.5.209
     gateway: 192.168.5.1
     subnet: 255.255.255.0
+    dns1: 192.168.7.50
+
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
     ssid: "Energy Fallback Hotspot"
     password: "E12bcaWpvNMD"
+
 
 time:
   - platform: sntp

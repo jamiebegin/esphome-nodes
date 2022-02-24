@@ -1,0 +1,127 @@
+esphome:
+  name: garage
+  platform: ESP32
+  board: featheresp32
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pwd
+  fast_connect: False
+  reboot_timeout: 15min
+  domain: !secret domain
+  
+  manual_ip:
+    static_ip: 192.168.5.210
+    gateway: 192.168.5.1
+    subnet: 255.255.255.0
+    dns1: 192.168.7.50
+
+  ap:
+    ssid: "Garage Fallback Hotspot"
+    password: "E12bcaWpvNMD"
+
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: "America/Detroit"
+    servers: !secret ntp_server
+
+switch:
+  - platform: restart
+    name: "Garage Sensor Restart"
+
+# ######### Sensors ##########
+sensor:
+  - platform: wifi_signal
+    name: "Garage Sensor Signal"
+    update_interval: 1min
+    filters:
+      - quantile:
+          window_size: 31
+          send_every: 15
+          send_first_at: 3
+          quantile: .9
+          
+  - platform: uptime
+    name: Garage Sensor Uptime
+    
+binary_sensor:
+  - platform: status
+    name: "Garage Sensor Status"
+    
+  - platform: gpio
+    pin: 36
+    name: "Garage PIR Sensor"
+    device_class: motion
+    id: pir
+    on_state:
+      then:
+        if:
+          condition:
+            and:
+              - binary_sensor.is_on: pir
+              - binary_sensor.is_on: microwave
+          then:
+              - binary_sensor.template.publish:
+                  id: garage_motion
+                  state: ON
+          else:
+              - binary_sensor.template.publish:
+                  id: garage_motion
+                  state: OFF
+
+    
+  - platform: gpio
+    pin: 14
+    name: "Garage Microwave Sensor"
+    device_class: motion
+    id: microwave
+    on_state:
+      then:
+        if:
+          condition:
+            and:
+              - binary_sensor.is_on: pir
+              - binary_sensor.is_on: microwave
+          then:
+              - binary_sensor.template.publish:
+                 id: garage_motion
+                 state: ON
+          else:
+          
+            if:
+              condition:
+                  binary_sensor.is_on: garage_motion
+              then:
+                  - binary_sensor.template.publish:
+                     id: garage_motion
+                     state: OFF
+
+ 
+  - platform: template
+    name: Garage Motion
+    id: garage_motion
+    device_class: motion
+
+
+#  - platform: adc
+#    pin: A9
+#    name: "Garage Sound Sensor"
+#    attenuation: 0db
+#    update_interval: 1ms
+#    filters:
+#      - delta: 5.0
+#      - sliding_window_moving_average:
+#          window_size: 500
+#          send_every: 600
+
+###############################
+captive_portal:
+
+# Enable logging
+logger:
+
+mqtt:
+  broker: !secret mqtt_broker
+
+ota:

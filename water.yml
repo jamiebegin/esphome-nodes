@@ -4,38 +4,59 @@ esphome:
   board: featheresp32
 
 wifi:
-  ssid: "rook"
-  password: "IWantMyPrivacy!"
-  fast_connect: True
-  reboot_timeout: 15min 
-
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pwd
+  fast_connect: False
+  reboot_timeout: 15min
+  domain: !secret domain
+  manual_ip:
+    static_ip: 192.168.5.239
+    gateway: 192.168.5.1
+    subnet: 255.255.255.0
+    dns1: 192.168.7.50
+    
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
-    ssid: "Water Fallback Hotspot"
+    ssid: "Water Systems Fallback Hotspot"
     password: "E12bcaWpvNMD"
 
-binary_sensor:
-  - platform: status
-    name: "Water Sensor Status"
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: "America/Detroit"
+    servers: !secret ntp_server
+
+# ######### Sensors ##########
 
 sensor:
   - platform: wifi_signal
-    name: "Water Sensor Signal"
-    update_interval: 60s
+    name: "Water Systems Signal"
+    update_interval: 1min
+    filters:
+      - quantile:
+          window_size: 31
+          send_every: 15
+          send_first_at: 3
+          quantile: .9
+          
+  - platform: uptime
+    name: "Water Systems Uptime"
+    
   - platform: mqtt_subscribe
     name: "Injection Pump"
     id: injection_pump_mqtt
     topic: irrigation/injection_pump
 
-switch:
-#
-#  - platform: template
-#    name: "Injection Pump"
-#    icon: "mdi:bell"
-#    turn_on_action:
-#    - switch.turn_on: injection_pump_relay
-#    - switch.turn_off: injection_pump_relay
+binary_sensor:
+  - platform: status
+    name: "Water Systems Status"
 
+# ######### Switches ##########
+
+switch:
+  - platform: restart
+    name: "Water Systems Restart"
+    
   - platform: gpio
     pin: A0
     name: "Injection Pump Relay"
@@ -43,13 +64,14 @@ switch:
     inverted: no
     restore_mode: ALWAYS_OFF    
     
+###############################
 captive_portal:
 
 # Enable logging
 logger:
 
 mqtt:
-  broker: 192.168.7.60
+  broker: !secret mqtt_broker
 
 ota:
     

@@ -47,14 +47,22 @@ ads1115:
 sensor:
   - platform: wifi_signal
     name: "RO Sensor Signal"
-    update_interval: 15min
+    update_interval: 1min
+    filters:
+      - quantile:
+          window_size: 31
+          send_every: 15
+          send_first_at: 3
+          quantile: .9
+          
   - platform: uptime
     name: RO Sensor Uptime
+    
   - platform: ads1115
     multiplexer: 'A0_GND'
     gain: 2.048
     name: "To RO"
-    update_interval: 15min
+    update_interval: 5min
     unit_of_measurement: "ppm"
     icon: "mdi:pipe"
     accuracy_decimals: 0    
@@ -68,16 +76,17 @@ sensor:
         - 0.9985 -> 500.0
         - 1.3880 -> 750.0
         - 1.7487 -> 1000.0
-      - median:
-          window_size: 95
-          send_every: 32
-          send_first_at: 1
+      - quantile:
+          window_size: 13
+          send_every: 12
+          send_first_at: 3
+          quantile: .9
  
   - platform: ads1115
     multiplexer: 'A1_GND'
     gain: 2.048
     name: "From RO"
-    update_interval: 15min
+    update_interval: 5min
     unit_of_measurement: "ppm"
     icon: "mdi:cup-water"
     accuracy_decimals: 0      
@@ -91,7 +100,8 @@ sensor:
         - 0.874 -> 500.0
         - 1.316 -> 750.0
         - 1.566 -> 1000.0
-      - median:
-          window_size: 95
-          send_every: 32
-          send_first_at: 1
+      - quantile:
+          window_size: 13
+          send_every: 12
+          send_first_at: 3
+          quantile: .9
