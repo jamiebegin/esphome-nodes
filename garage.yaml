@@ -1,5 +1,5 @@
 esphome:
-  name: garage
+  name: esp-garage1
   platform: ESP32
   board: featheresp32
 
@@ -9,12 +9,11 @@ wifi:
   fast_connect: False
   reboot_timeout: 15min
   domain: !secret domain
-  
   manual_ip:
     static_ip: 192.168.5.210
-    gateway: 192.168.5.1
-    subnet: 255.255.255.0
-    dns1: 192.168.7.50
+    gateway: !secret gateway
+    subnet: !secret subnet
+    dns1: !secret dns_server
 
   ap:
     ssid: "Garage Fallback Hotspot"
@@ -25,6 +24,8 @@ time:
     id: sntp_time
     timezone: "America/Detroit"
     servers: !secret ntp_server
+    
+# ######### Switches ##########
 
 switch:
   - platform: restart
@@ -35,12 +36,12 @@ sensor:
   - platform: wifi_signal
     name: "Garage Sensor Signal"
     update_interval: 1min
+    force_update: true
     filters:
-      - quantile:
+      - median:
           window_size: 31
           send_every: 15
           send_first_at: 3
-          quantile: .9
           
   - platform: uptime
     name: Garage Sensor Uptime

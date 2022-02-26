@@ -1,5 +1,5 @@
 esphome:
-  name: ro_water
+  name: esp-ro1
   platform: ESP32
   board: featheresp32
 
@@ -11,9 +11,13 @@ wifi:
   domain: !secret domain
   manual_ip:
     static_ip: 192.168.5.179
-    gateway: 192.168.5.1
-    subnet: 255.255.255.0
-    dns1: 192.168.7.50
+    gateway: !secret gateway
+    subnet: !secret subnet
+    dns1: !secret dns_server
+
+  ap:
+    ssid: "RO1 Fallback Hotspot"
+    password: "E12bcaWpvNMD"
 
 time:
   - platform: sntp
@@ -21,51 +25,49 @@ time:
     timezone: "America/Detroit"
     servers: !secret ntp_server
 
-logger:
-
-mqtt:
-  broker: !secret mqtt_broker
-
-ota:
+# ######### Switches ##########
 
 switch:
   - platform: restart
-    name: "RO Sensor Restart"
+    name: "RO1 Sensor Restart"
 
 i2c:
   scan: True
   sda: 23
   scl: 22
+  
+# ######### Sensors ##########
 
 binary_sensor:
   - platform: status
-    name: "RO Sensor Status"
+    name: "RO1 Sensor Status"
 
 ads1115:
   - address: 0x48
   
 sensor:
   - platform: wifi_signal
-    name: "RO Sensor Signal"
+    name: "RO1 Sensor Signal"
     update_interval: 1min
+    force_update: true 
     filters:
-      - quantile:
+      - median:
           window_size: 31
           send_every: 15
-          send_first_at: 3
-          quantile: .9
-          
+          send_first_at: 1
+
   - platform: uptime
-    name: RO Sensor Uptime
+    name: "RO1 Sensor Uptime"
     
   - platform: ads1115
     multiplexer: 'A0_GND'
     gain: 2.048
-    name: "To RO"
-    update_interval: 5min
+    name: "To RO1"
+    update_interval: 30s
     unit_of_measurement: "ppm"
     icon: "mdi:pipe"
-    accuracy_decimals: 0    
+    accuracy_decimals: 0
+    force_update: true
     filters:
       - calibrate_linear:
         - 0.0163 -> 0.0
@@ -76,20 +78,20 @@ sensor:
         - 0.9985 -> 500.0
         - 1.3880 -> 750.0
         - 1.7487 -> 1000.0
-      - quantile:
-          window_size: 13
-          send_every: 12
-          send_first_at: 3
-          quantile: .9
+      - median:
+          window_size: 7
+          send_every: 4
+          send_first_at: 1
  
   - platform: ads1115
     multiplexer: 'A1_GND'
     gain: 2.048
-    name: "From RO"
-    update_interval: 5min
+    name: "From RO1"
+    update_interval: 30s
     unit_of_measurement: "ppm"
     icon: "mdi:cup-water"
-    accuracy_decimals: 0      
+    accuracy_decimals: 0
+    force_update: true
     filters:
       - calibrate_linear:
         - 0.016 -> 0.0
@@ -100,8 +102,18 @@ sensor:
         - 0.874 -> 500.0
         - 1.316 -> 750.0
         - 1.566 -> 1000.0
-      - quantile:
-          window_size: 13
-          send_every: 12
-          send_first_at: 3
-          quantile: .9
+      - median:
+          window_size: 7
+          send_every: 4
+          send_first_at: 1
+
+###############################
+captive_portal:
+
+# Enable logging
+logger:
+
+mqtt:
+  broker: !secret mqtt_broker
+
+ota:    

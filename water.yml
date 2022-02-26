@@ -1,5 +1,5 @@
 esphome:
-  name: water
+  name: esp-water
   platform: ESP32
   board: featheresp32
 
@@ -11,9 +11,9 @@ wifi:
   domain: !secret domain
   manual_ip:
     static_ip: 192.168.5.239
-    gateway: 192.168.5.1
-    subnet: 255.255.255.0
-    dns1: 192.168.7.50
+    gateway: !secret gateway
+    subnet: !secret subnet
+    dns1: !secret dns_server
     
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
@@ -32,12 +32,12 @@ sensor:
   - platform: wifi_signal
     name: "Water Systems Signal"
     update_interval: 1min
+    force_update: true
     filters:
-      - quantile:
+      - median:
           window_size: 31
           send_every: 15
           send_first_at: 3
-          quantile: .9
           
   - platform: uptime
     name: "Water Systems Uptime"
@@ -51,6 +51,7 @@ binary_sensor:
   - platform: status
     name: "Water Systems Status"
 
+
 # ######### Switches ##########
 
 switch:
@@ -62,7 +63,9 @@ switch:
     name: "Injection Pump Relay"
     id: injection_pump_relay
     inverted: no
-    restore_mode: ALWAYS_OFF    
+    restore_mode: ALWAYS_OFF
+    
+    
     
 ###############################
 captive_portal:

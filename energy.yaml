@@ -1,27 +1,23 @@
 esphome:
-  name: energy_monitor
+  name: esp-energy1
   platform: ESP32
   board: nodemcu-32s
 
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_pwd
-  fast_connect: True
+  fast_connect: False
   reboot_timeout: 15min
   domain: !secret domain
-  
   manual_ip:
     static_ip: 192.168.5.209
-    gateway: 192.168.5.1
-    subnet: 255.255.255.0
-    dns1: 192.168.7.50
+    gateway: !secret gateway
+    subnet: !secret subnet
+    dns1: !secret dns_server
 
-
-  # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
     ssid: "Energy Fallback Hotspot"
     password: "E12bcaWpvNMD"
-
 
 time:
   - platform: sntp
@@ -29,24 +25,17 @@ time:
     timezone: "America/Detroit"
     servers: !secret ntp_server
 
+# ######### Switches ##########
+
 switch:
   - platform: restart
     name: "Energy Monitor Restart"
 
+# ######### Sensors ##########
+
 binary_sensor:
   - platform: status
     name: "Energy Monitor Status"
-
-captive_portal:
-
-# Enable logging
-logger:
-
-mqtt:
-  broker: 192.168.7.60
-
-ota:
-
 
 # Example configuration entry for split single phase meter
 spi:
@@ -57,7 +46,17 @@ spi:
 sensor:
   - platform: wifi_signal
     name: "Energy Monitor Signal"
-    update_interval: 60s
+    update_interval: 1min
+    force_update: true
+    filters:
+      - median:
+          window_size: 31
+          send_every: 15
+          send_first_at: 3
+
+  - platform: uptime
+    name: "Energy Monitor Uptime"         
+          
   - platform: atm90e32
     cs_pin: 5
     phase_a:
@@ -92,3 +91,14 @@ sensor:
     current_phases: 2
     gain_pga: 2X
     update_interval: 60s
+
+###############################
+captive_portal:
+
+# Enable logging
+logger:
+
+mqtt:
+  broker: !secret mqtt_broker
+
+ota:    
