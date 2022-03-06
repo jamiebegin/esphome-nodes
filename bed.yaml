@@ -1,7 +1,7 @@
 esphome:
-  name: bed
-  platform: ESP8266
-  board: nodemcuv2
+  name: esp-bed
+  platform: ESP32
+  board: featheresp32
 
 wifi:
   ssid: !secret wifi_ssid
@@ -10,9 +10,14 @@ wifi:
   reboot_timeout: 15min
   domain: !secret domain
   manual_ip:
-    static_ip: 192.168.5.197
-    gateway: 192.168.5.1
-    subnet: 255.255.255.0
+    static_ip: 192.168.5.211
+    gateway: !secret gateway
+    subnet: !secret subnet
+    dns1: !secret dns_server
+
+  ap:
+    ssid: "Bed Fallback Hotspot"
+    password: "E12bcaWpvNMD"
 
 time:
   - platform: sntp
@@ -20,55 +25,171 @@ time:
     timezone: "America/Detroit"
     servers: !secret ntp_server
 
+# ######### Switches ##########
+
+switch:
+  - platform: restart
+    name: "Bed Sensor Restart"
+
+# ######### Sensors ##########
+sensor:
+  - platform: wifi_signal
+    name: "Bed Sensor Signal"
+    update_interval: 1min
+    force_update: true
+    expire_after: 30min
+    filters:
+      - median:
+          window_size: 31
+          send_every: 15
+          send_first_at: 3
+          
+  - platform: uptime
+    name: "Bed Sensor Uptime"
+    expire_after: 30min
+    
+binary_sensor:
+  - platform: status
+    name: "Bed Sensor Status"
+    
+light:
+  - platform: partition
+    name: "Bed Light Jamie"
+    restore_mode: ALWAYS_OFF
+    segments:
+      - id: bed_ledstrip
+        from: 0
+        to: 120
+    effects:
+      - addressable_rainbow:    
+      - addressable_scan:
+          name: Fast Scan Effect
+          move_interval: 3ms
+          scan_width: 3    
+      - addressable_lambda:
+          name: Bed Night Light
+          update_interval: 300ms
+          lambda: |-
+            //it.all().fade_to_black(10);
+            for (int i = 0; i <= it.size(); i++) {
+              if( i % 4 == 0 ) {
+                it[i] = Color(250,0,0);
+              }
+            }  
+
+        
+  - platform: partition
+    name: "Bed Light Foot"
+    restore_mode: ALWAYS_OFF
+    segments:
+      - id: bed_ledstrip
+        from: 121
+        to: 208
+    effects:
+      - addressable_rainbow:    
+      - addressable_scan:
+          name: Fast Scan Effect
+          move_interval: 3ms
+          scan_width: 3
+      - addressable_lambda:
+          name: Bed Night Light
+          update_interval: 300ms
+          lambda: |-
+            //it.all().fade_to_black(10);
+            for (int i = 0; i <= it.size(); i++) {
+              if( i % 4 == 0 ) {
+                it[i] = Color(50,0,0);
+              }
+            }  
+
+  - platform: partition
+    name: "Bed Light Kim"
+    restore_mode: ALWAYS_OFF
+    segments:
+      - id: bed_ledstrip
+        from: 209
+        to: 338
+    effects:
+      - addressable_rainbow:
+      - addressable_scan:
+          name: Fast Scan Effect
+          move_interval: 3ms
+          scan_width: 3
+      - addressable_lambda:
+          name: Bed Night Light
+          update_interval: 300ms
+          lambda: |-
+            // it.all().fade_to_black(10);
+            for (int i = 0; i <= it.size(); i++) {
+              if( i % 4 == 0 ) {
+                it[i] = Color(50,0,0);
+              }
+            }  
+
+  - platform: partition
+    name: "Bed Light Head"
+    restore_mode: ALWAYS_OFF
+    segments:
+      - id: bed_ledstrip
+        from: 339
+        to: 427
+    effects:
+      - addressable_rainbow:    
+      - addressable_scan:
+          name: Fast Scan Effect
+          move_interval: 3ms
+          scan_width: 3
+      - addressable_lambda:
+          name: Bed Night Light
+          update_interval: 300ms
+          lambda: |-
+            //it.all().fade_to_black(10);
+            it.range(0, it.size()-1) = Color::BLACK;
+            for (int i = 0; i <= it.size(); i++) {
+              if( i % 4 == 0 ) {
+                it[i] = Color(50,0,0);
+              }
+            }  
+
+  - platform: fastled_spi
+    chipset: DOTSTAR
+    data_pin: 18
+    clock_pin: 5
+    num_leds: 428
+    rgb_order: BGR
+    max_refresh_rate: 1ms
+    restore_mode: ALWAYS_OFF
+    name: "Bed Light"
+    id: bed_ledstrip
+    effects:
+      - addressable_color_wipe:
+      - addressable_rainbow:
+      - addressable_scan:
+          name: Fast Scan Effect
+          move_interval: 3ms
+          scan_width: 3
+      - addressable_flicker:
+          name: Flicker Effect With Custom Values
+          update_interval: 16ms
+          intensity: 15%          
+      - addressable_lambda:
+          name: Bed Night Light
+          update_interval: 300ms
+          lambda: |-
+            it.all().fade_to_black(10);
+            for (int i = 0; i <= it.size(); i++) {
+              if( i % 4 == 0 ) {
+                it[i] = Color(250,0,0);
+              }
+            }  
+
+###############################
+captive_portal:
+
+# Enable logging
 logger:
 
 mqtt:
   broker: !secret mqtt_broker
 
 ota:
-
-binary_sensor:
-  - platform: status
-    name: "Bed Sensor Status"
-    
-switch:
-  - platform: restart
-    name: "Bed Sensor Restart"  
-
-sensor:
-  - platform: wifi_signal
-    name: "Bed Sensor Signal"
-    update_interval: 5min
-  - platform: uptime
-    name: Bed Sensor Uptime    
-  - platform: hx711
-    name: "Bed Weight"
-    dout_pin: D7
-    clk_pin: D6
-    #gain: 128
-    update_interval: 20s
-    id: bedweight
-    filters:
-      - calibrate_linear:
-          - -2063027 -> 0
-          - -2710671 -> 154
-          #- -2387549 -> 56.4
-          - -3468707 -> 240
-      - delta: 100
-      - debounce: 15s
-    unit_of_measurement: lb
-    internal: True
-  - platform: template
-    name: "Bed Occupants"
-    accuracy_decimals: 0 
-    lambda: |-
-      if (id(bedweight).state > 300) {
-        return 3.0;
-      } else if (id(bedweight).state > 200) {
-        return 2.0;
-      } else if (id(bedweight).state > 100) {
-        return 1.0;
-      } else {
-        return 0.0;
-      }
-    update_interval: 30s 

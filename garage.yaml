@@ -37,6 +37,7 @@ sensor:
     name: "Garage Sensor Signal"
     update_interval: 1min
     force_update: true
+    expire_after: 30min
     filters:
       - median:
           window_size: 31
@@ -45,6 +46,7 @@ sensor:
           
   - platform: uptime
     name: Garage Sensor Uptime
+    expire_after: 30min
     
 binary_sensor:
   - platform: status
@@ -54,6 +56,7 @@ binary_sensor:
     pin: 36
     name: "Garage PIR Sensor"
     device_class: motion
+    internal: true
     id: pir
     on_state:
       then:
@@ -76,6 +79,7 @@ binary_sensor:
     pin: 14
     name: "Garage Microwave Sensor"
     device_class: motion
+    internal: true
     id: microwave
     on_state:
       then:

@@ -49,7 +49,8 @@ sensor:
   - platform: wifi_signal
     name: "RO1 Sensor Signal"
     update_interval: 1min
-    force_update: true 
+    force_update: true
+    expire_after: 30min
     filters:
       - median:
           window_size: 31
@@ -58,16 +59,18 @@ sensor:
 
   - platform: uptime
     name: "RO1 Sensor Uptime"
+    expire_after: 30min    
     
   - platform: ads1115
     multiplexer: 'A0_GND'
     gain: 2.048
     name: "To RO1"
-    update_interval: 30s
+    update_interval: 60s
     unit_of_measurement: "ppm"
     icon: "mdi:pipe"
     accuracy_decimals: 0
     force_update: true
+    expire_after: 24h
     filters:
       - calibrate_linear:
         - 0.0163 -> 0.0
@@ -79,19 +82,20 @@ sensor:
         - 1.3880 -> 750.0
         - 1.7487 -> 1000.0
       - median:
-          window_size: 7
-          send_every: 4
+          window_size: 481
+          send_every: 240
           send_first_at: 1
  
   - platform: ads1115
     multiplexer: 'A1_GND'
     gain: 2.048
     name: "From RO1"
-    update_interval: 30s
+    update_interval: 60s
     unit_of_measurement: "ppm"
     icon: "mdi:cup-water"
     accuracy_decimals: 0
     force_update: true
+    expire_after: 24h
     filters:
       - calibrate_linear:
         - 0.016 -> 0.0
@@ -103,8 +107,8 @@ sensor:
         - 1.316 -> 750.0
         - 1.566 -> 1000.0
       - median:
-          window_size: 7
-          send_every: 4
+          window_size: 481
+          send_every: 240
           send_first_at: 1
 
 ###############################

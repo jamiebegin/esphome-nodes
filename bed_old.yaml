@@ -1,0 +1,74 @@
+esphome:
+  name: bed
+  platform: ESP8266
+  board: nodemcuv2
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pwd
+  fast_connect: False
+  reboot_timeout: 15min
+  domain: !secret domain
+  manual_ip:
+    static_ip: 192.168.5.197
+    gateway: 192.168.5.1
+    subnet: 255.255.255.0
+
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: "America/Detroit"
+    servers: !secret ntp_server
+
+logger:
+
+mqtt:
+  broker: !secret mqtt_broker
+
+ota:
+
+binary_sensor:
+  - platform: status
+    name: "Bed Sensor Status"
+    
+switch:
+  - platform: restart
+    name: "Bed Sensor Restart"  
+
+sensor:
+  - platform: wifi_signal
+    name: "Bed Sensor Signal"
+    update_interval: 5min
+  - platform: uptime
+    name: Bed Sensor Uptime    
+  - platform: hx711
+    name: "Bed Weight"
+    dout_pin: D7
+    clk_pin: D6
+    #gain: 128
+    update_interval: 20s
+    id: bedweight
+    filters:
+      - calibrate_linear:
+          - -2063027 -> 0
+          - -2710671 -> 154
+          #- -2387549 -> 56.4
+          - -3468707 -> 240
+      - delta: 100
+      - debounce: 15s
+    unit_of_measurement: lb
+    internal: True
+  - platform: template
+    name: "Bed Occupants"
+    accuracy_decimals: 0 
+    lambda: |-
+      if (id(bedweight).state > 300) {
+        return 3.0;
+      } else if (id(bedweight).state > 200) {
+        return 2.0;
+      } else if (id(bedweight).state > 100) {
+        return 1.0;
+      } else {
+        return 0.0;
+      }
+    update_interval: 30s 
