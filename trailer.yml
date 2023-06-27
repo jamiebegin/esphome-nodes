@@ -1,0 +1,129 @@
+esphome:
+  name: trailer
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  password: ""
+
+ota:
+  password: ""
+
+captive_portal:
+
+wifi:
+  ssid: "rook"
+  password: "IWantMyPrivacy!"
+  fast_connect: True
+  reboot_timeout: 15min
+  output_power: "20.5dB"
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Trailer Fallback Hotspot"
+    password: "zc8uO0Bn0Tpj"
+
+  manual_ip:
+    static_ip: 192.168.5.212
+    gateway: 192.168.5.1
+    subnet: 255.255.255.0
+
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: "America/Detroit"
+    servers: 192.168.7.60
+
+mqtt:
+  broker: 192.168.7.60
+
+###############
+i2c:
+  sda: 21
+  scl: 22
+  scan: true
+  id: bus_a
+
+# ######### Switches & Buttons ##########
+light:
+  - platform: status_led
+    name: "Trailer Status"
+    pin: 14
+  - platform: binary
+    name: "Trailer Vent Fan Status"
+    output: fan_status
+    id: fan_status_led
+
+output:
+  - id: fan_status
+    platform: gpio
+    pin: GPIO16
+
+switch:
+  - platform: restart
+    name: "Trailer Monitor Restart"
+  - platform: gpio
+    pin: GPIO17
+    id: vent_fan
+    name: "Trailer Vent Fan"
+  - platform: restart
+    name: "Trailer Monitor Restart"
+  - platform: shutdown
+    name: "Trailer Monitor Shutdown"
+
+# #######################################
+
+sensor:
+  - platform: wifi_signal
+    name: "Trailer Monitor Signal"
+    update_interval: 1min
+    force_update: true
+    expire_after: 30min
+    filters:
+      - median:
+          window_size: 31
+          send_every: 5
+          send_first_at: 1
+          
+  - platform: uptime
+    name: Trailer Monitor Uptime
+    expire_after: 30min
+
+  - platform: bme680
+    temperature:
+      name: "Trailer Temperature"
+      id: trailer_temperature
+      oversampling: 16x
+    pressure:
+      name: "Trailer Pressure"
+    humidity:
+      name: "Trailer Humidity"
+    gas_resistance:
+      name: "Trailer Gas Resistance"
+    address: 0x77
+    update_interval: 60s
+
+climate:
+  - platform: bang_bang
+    name: "Trailer Fan Controller"
+    sensor: trailer_temperature
+    default_target_temperature_low: 31
+    default_target_temperature_high: 35
+    target_temperature_low_command_topic: trailer/temp_low
+    target_temperature_high_command_topic: trailer/temp_high
+
+    cool_action:
+      then:
+        - switch.turn_on: vent_fan
+        - light.turn_on: fan_status_led
+    idle_action:
+      then:
+        - switch.turn_off: vent_fan
+        - light.turn_off: fan_status_led
