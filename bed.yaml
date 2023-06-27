@@ -52,9 +52,15 @@ binary_sensor:
   - platform: status
     name: "Bed Sensor Status"
     
+    
+# ######### Lights ##########
+
+e131:
+  method: multicast
+
 light:
   - platform: partition
-    name: "Bed Light Jamie"
+    name: "Bed Jamie"
     restore_mode: ALWAYS_OFF
     segments:
       - id: bed_ledstrip
@@ -68,18 +74,27 @@ light:
           scan_width: 3    
       - addressable_lambda:
           name: Bed Night Light
-          update_interval: 300ms
+          update_interval: 15ms
           lambda: |-
-            //it.all().fade_to_black(10);
-            for (int i = 0; i <= it.size(); i++) {
-              if( i % 4 == 0 ) {
-                it[i] = Color(250,0,0);
-              }
-            }  
+            static uint16_t current_led = 0;
+            if (initial_run) {
+              current_led = 0;
+              it.all() = Color::BLACK;
+              // optionally do a return so nothing happens until the next update_interval
+              return;
+            }
+            
+            else if( current_led >= it.size()+1 )
+              return;
+            
+            else if( current_led % 4 == 0 )
+              it[current_led] = Color(50,0,0);
+            
+            current_led++;
 
         
   - platform: partition
-    name: "Bed Light Foot"
+    name: "Bed Footboard"
     restore_mode: ALWAYS_OFF
     segments:
       - id: bed_ledstrip
@@ -93,17 +108,26 @@ light:
           scan_width: 3
       - addressable_lambda:
           name: Bed Night Light
-          update_interval: 300ms
+          update_interval: 15ms
           lambda: |-
-            //it.all().fade_to_black(10);
-            for (int i = 0; i <= it.size(); i++) {
-              if( i % 4 == 0 ) {
-                it[i] = Color(50,0,0);
-              }
-            }  
+            static uint16_t current_led = 0;
+            if (initial_run) {
+              current_led = 0;
+              it.all() = Color::BLACK;
+              // optionally do a return so nothing happens until the next update_interval
+              return;
+            }
+            
+            else if( current_led >= it.size()+1 )
+              return;
+            
+            else if( current_led % 4 == 0 )
+              it[current_led] = Color(50,0,0);
+            
+            current_led++;
 
   - platform: partition
-    name: "Bed Light Kim"
+    name: "Bed Kim"
     restore_mode: ALWAYS_OFF
     segments:
       - id: bed_ledstrip
@@ -117,17 +141,26 @@ light:
           scan_width: 3
       - addressable_lambda:
           name: Bed Night Light
-          update_interval: 300ms
+          update_interval: 15ms
           lambda: |-
-            // it.all().fade_to_black(10);
-            for (int i = 0; i <= it.size(); i++) {
-              if( i % 4 == 0 ) {
-                it[i] = Color(50,0,0);
-              }
-            }  
+            static uint16_t current_led = 0;
+            if (initial_run) {
+              current_led = 0;
+              it.all() = Color::BLACK;
+              // optionally do a return so nothing happens until the next update_interval
+              return;
+            }
+            
+            else if( current_led >= it.size()+1 )
+              return;
+            
+            else if( current_led % 4 == 0 )
+              it[current_led] = Color(50,0,0);
+            
+            current_led++;
 
   - platform: partition
-    name: "Bed Light Head"
+    name: "Bed Headboard"
     restore_mode: ALWAYS_OFF
     segments:
       - id: bed_ledstrip
@@ -141,16 +174,32 @@ light:
           scan_width: 3
       - addressable_lambda:
           name: Bed Night Light
-          update_interval: 300ms
+          update_interval: 15ms
           lambda: |-
-            //it.all().fade_to_black(10);
-            it.range(0, it.size()-1) = Color::BLACK;
-            for (int i = 0; i <= it.size(); i++) {
-              if( i % 4 == 0 ) {
-                it[i] = Color(50,0,0);
-              }
-            }  
+            static uint16_t current_led = 0;
+            if (initial_run) {
+              current_led = 0;
+              it.all() = Color::BLACK;
+              // optionally do a return so nothing happens until the next update_interval
+              return;
+            }
+            
+            else if( current_led >= it.size()+1 )
+              return;
+            
+            else if( current_led % 4 == 0 )
+              it[current_led] = Color(50,0,0);
+            
+            current_led++;
 
+  - platform: partition
+    name: "Bed Base"
+    restore_mode: ALWAYS_OFF
+    segments:
+      - id: bed_ledstrip
+        from: 0
+        to: 338
+        
   - platform: fastled_spi
     chipset: DOTSTAR
     data_pin: 18
@@ -159,9 +208,13 @@ light:
     rgb_order: BGR
     max_refresh_rate: 1ms
     restore_mode: ALWAYS_OFF
-    name: "Bed Light"
+    name: "Bed"
     id: bed_ledstrip
     effects:
+      - e131:
+          name: "Music Sync"
+          universe: 1
+          channels: RGB
       - addressable_color_wipe:
       - addressable_rainbow:
       - addressable_scan:
@@ -174,14 +227,23 @@ light:
           intensity: 15%          
       - addressable_lambda:
           name: Bed Night Light
-          update_interval: 300ms
+          update_interval: 20ms
           lambda: |-
-            it.all().fade_to_black(10);
-            for (int i = 0; i <= it.size(); i++) {
-              if( i % 4 == 0 ) {
-                it[i] = Color(250,0,0);
-              }
-            }  
+            static uint16_t current_led = 0;
+            if (initial_run) {
+              current_led = 0;
+              it.all() = Color::BLACK;
+              // optionally do a return so nothing happens until the next update_interval
+              return;
+            }
+            
+            else if( current_led >= it.size()+1 )
+              return;
+            
+            else if( current_led % 4 == 0 )
+              it[current_led] = Color(50,0,0);
+            
+            current_led++;
 
 ###############################
 captive_portal:
