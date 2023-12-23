@@ -30,6 +30,8 @@ time:
 switch:
   - platform: restart
     name: "Energy Monitor Restart"
+  - platform: shutdown
+    name: "Energy Monitor Shutdown"
 
 # ######### Sensors ##########
 
@@ -65,13 +67,19 @@ sensor:
       voltage:
         name: "Energy Line Voltage A"
       current:
-        name: "Energy Current A"
+        name: "Energy Current A"  
       power:
         name: "Energy Active Power A"
+        filters:
+          - multiply: -1.0        
       reactive_power:
         name: "Energy Reactive Power A"
+        filters:
+          - multiply: -1.0
       power_factor:
         name: "Energy Power Factor A"
+        filters:
+          - multiply: -1.0        
       gain_voltage: 3920
       gain_ct: 39473
     phase_c:
@@ -79,10 +87,16 @@ sensor:
         name: "Energy Current B"
       power:
         name: "Energy Active Power B"
+        filters:
+          - multiply: -1.0
       reactive_power:
         name: "Energy Reactive Power B"
+        filters:
+          - multiply: -1.0        
       power_factor:
         name: "Energy Power Factor B"
+        filters:
+          - multiply: -1.0        
       gain_voltage: 3920
       gain_ct: 39473
     frequency:

@@ -99,6 +99,8 @@ binary_sensor:
 switch:
   - platform: restart
     name: "Water Systems Restart"
+  - platform: shutdown
+    name: "Water Systems Shutdown"
     
   - platform: gpio
     pin: A0
@@ -107,7 +109,12 @@ switch:
     inverted: no
     restore_mode: ALWAYS_OFF
     
-    
+# ######### Lights  ##########
+
+light:
+  - platform: status_led
+    name: "Water Systems Status LED"
+    pin: 13
     
 ###############################
 captive_portal:

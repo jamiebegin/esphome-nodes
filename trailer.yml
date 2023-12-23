@@ -67,8 +67,6 @@ output:
     pin: GPIO16
 
 switch:
-  - platform: restart
-    name: "Trailer Monitor Restart"
   - platform: gpio
     pin: GPIO17
     id: vent_fan
