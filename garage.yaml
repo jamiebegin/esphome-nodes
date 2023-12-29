@@ -1,7 +1,18 @@
-esphome:
-  name: esp-garage1
-  platform: ESP32
+substitutions:
+  name: esp32-garage1
+  friendly_name: Garage Sensor
+  ip_addr: 192.168.5.210
   board: featheresp32
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  name_add_mac_suffix: false
+
+esp32:
+  board: ${board}
+  framework:
+    type: arduino
 
 wifi:
   ssid: !secret wifi_ssid
@@ -10,7 +21,7 @@ wifi:
   reboot_timeout: 15min
   domain: !secret domain
   manual_ip:
-    static_ip: 192.168.5.210
+    static_ip: ${ip_addr}
     gateway: !secret gateway
     subnet: !secret subnet
     dns1: !secret dns_server
@@ -24,17 +35,42 @@ time:
     id: sntp_time
     timezone: "America/Detroit"
     servers: !secret ntp_server
-    
-# ######### Switches ##########
 
+logger:
+
+mqtt:
+  broker: !secret mqtt_broker
+  topic_prefix: esphome/devices/${name}
+  birth_message:
+    topic: esphome/availability/${name}
+    payload: online
+  will_message:
+    topic: esphome/availability/${name}
+    payload: offline  
+
+ota:
+
+###############################
+
+
+# ######### Switches & Buttons  ##########
 switch:
   - platform: restart
-    name: "Garage Sensor Restart"
+    name: "Restart"
+  - platform: shutdown
+    name: "Shutdown"
+
+button:
+  - platform: safe_mode
+    name: "Safe Mode Boot"
+    entity_category: diagnostic
+    
+
 
 # ######### Sensors ##########
 sensor:
   - platform: wifi_signal
-    name: "Garage Sensor Signal"
+    name: "Wifi Signal"
     update_interval: 1min
     force_update: true
     expire_after: 30min
@@ -45,12 +81,12 @@ sensor:
           send_first_at: 3
           
   - platform: uptime
-    name: Garage Sensor Uptime
+    name: Uptime
     expire_after: 30min
     
 binary_sensor:
   - platform: status
-    name: "Garage Sensor Status"
+    name: "Status"
     
   - platform: gpio
     pin: 36
@@ -101,32 +137,8 @@ binary_sensor:
                   - binary_sensor.template.publish:
                      id: garage_motion
                      state: OFF
-
  
   - platform: template
     name: Garage Motion
     id: garage_motion
     device_class: motion
-
-
-#  - platform: adc
-#    pin: A9
-#    name: "Garage Sound Sensor"
-#    attenuation: 0db
-#    update_interval: 1ms
-#    filters:
-#      - delta: 5.0
-#      - sliding_window_moving_average:
-#          window_size: 500
-#          send_every: 600
-
-###############################
-captive_portal:
-
-# Enable logging
-logger:
-
-mqtt:
-  broker: !secret mqtt_broker
-
-ota:
