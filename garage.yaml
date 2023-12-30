@@ -100,7 +100,6 @@ binary_sensor:
           condition:
             and:
               - binary_sensor.is_on: pir
-              - binary_sensor.is_on: microwave
           then:
               - binary_sensor.template.publish:
                   id: garage_motion
@@ -110,34 +109,6 @@ binary_sensor:
                   id: garage_motion
                   state: OFF
 
-    
-  - platform: gpio
-    pin: 14
-    name: "Garage Microwave Sensor"
-    device_class: motion
-    internal: true
-    id: microwave
-    on_state:
-      then:
-        if:
-          condition:
-            and:
-              - binary_sensor.is_on: pir
-              - binary_sensor.is_on: microwave
-          then:
-              - binary_sensor.template.publish:
-                 id: garage_motion
-                 state: ON
-          else:
-          
-            if:
-              condition:
-                  binary_sensor.is_on: garage_motion
-              then:
-                  - binary_sensor.template.publish:
-                     id: garage_motion
-                     state: OFF
- 
   - platform: template
     name: Garage Motion
     id: garage_motion
