@@ -33,8 +33,6 @@ time:
     timezone: "America/Detroit"
     servers: !secret ntp_server
 
-logger:
-
 mqtt:
   broker: !secret mqtt_broker
   topic_prefix: esphome/devices/${name}
@@ -45,7 +43,15 @@ mqtt:
     topic: esphome/availability/${name}
     payload: offline  
 
+# #######################################
+logger:
+
+api:
+  password: ""
+
 ota:
+  password: ""
+# #######################################
 
 ###############################
 
@@ -71,38 +77,38 @@ sensor:
     force_update: true
     expire_after: 30min
     filters:
-      - median:
-          window_size: 31
-          send_every: 15
-          send_first_at: 3
+      - exponential_moving_average:
+          alpha: 0.1
+          send_every: 300
+          send_first_at: 1
 
   - platform: bme280
     temperature:
       name: "Temperature"
       oversampling: 16x  
       filters:
-        - median:
-            window_size: 5
-            send_every: 6
-            send_first_at: 1          
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 300
+            send_first_at: 1    
     pressure:
       name: "Pressure"
       oversampling: 16x  
       filters:
-        - median:
-            window_size: 15
-            send_every: 60
-            send_first_at: 1        
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 300
+            send_first_at: 1
     humidity:
       name: "Humidity"
       oversampling: 16x      
       filters:
-        - median:
-            window_size: 5
-            send_every: 6
-            send_first_at: 1         
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 300
+            send_first_at: 1
     address: 0x77
-    update_interval: 5s
+    update_interval: 1s
           
   - platform: uptime
     name: Uptime
