@@ -1,5 +1,5 @@
 substitutions:
-  name: esp8266-familyroom-env
+  name: familyroom-env
   friendly_name: "Family Room Env"
   ip_addr: 192.168.5.110
   board: nodemcuv2
