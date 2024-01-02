@@ -1,6 +1,7 @@
 substitutions:
-  name: esp32-bluetooth-proxy
+  name: bluetooth-proxy
   friendly_name: Bluetooth Proxy
+  ip_addr: 192.168.7.239
 
 esphome:
   name: ${name}
@@ -21,12 +22,11 @@ ethernet:
   power_pin: GPIO12
   
   manual_ip:
-    static_ip: 192.168.7.239
-    gateway: 192.168.7.1
-    subnet: 255.255.255.0
-    dns1: 192.168.7.50
-  
-  domain: .home.thebeginfamily.com
+    static_ip: ${ip_addr}
+    gateway: !secret gateway
+    subnet: !secret subnet
+    dns1: !secret dns_server
+  domain: !secret domain
 
 # Enable logging
 logger:
@@ -46,6 +46,13 @@ time:
 
 mqtt:
   broker: 192.168.7.60
+  topic_prefix: esphome/devices/${name}
+  birth_message:
+    topic: esphome/availability/${name}
+    payload: online
+  will_message:
+    topic: esphome/availability/${name}
+    payload: offline  
 
 # #######################################
 
