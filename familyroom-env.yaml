@@ -1,0 +1,117 @@
+substitutions:
+  name: esp8266-familyroom-env
+  friendly_name: "Family Room Env"
+  ip_addr: 192.168.5.110
+  board: nodemcuv2
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  name_add_mac_suffix: false
+  platform: ESP8266
+  board: ${board}
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pwd
+  fast_connect: False
+  reboot_timeout: 15min
+  domain: !secret domain
+  manual_ip:
+    static_ip: ${ip_addr}
+    gateway: !secret gateway
+    subnet: !secret subnet
+    dns1: !secret dns_server
+
+  ap:
+    ssid: "${name}"
+    password: "E12bcaWpvNMD"
+
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: "America/Detroit"
+    servers: !secret ntp_server
+
+logger:
+
+mqtt:
+  broker: !secret mqtt_broker
+  topic_prefix: esphome/devices/${name}
+  birth_message:
+    topic: esphome/availability/${name}
+    payload: online
+  will_message:
+    topic: esphome/availability/${name}
+    payload: offline  
+
+ota:
+
+###############################
+
+
+# ######### Switches & Buttons  ##########
+switch:
+  - platform: restart
+    name: "Restart"
+  - platform: shutdown
+    name: "Shutdown"
+
+button:
+  - platform: safe_mode
+    name: "Safe Mode Boot"
+    entity_category: diagnostic
+    
+
+# ######### Sensors ##########
+sensor:
+  - platform: wifi_signal
+    name: "Wifi Signal"
+    update_interval: 1min
+    force_update: true
+    expire_after: 30min
+    filters:
+      - median:
+          window_size: 31
+          send_every: 15
+          send_first_at: 3
+
+  - platform: bme280
+    temperature:
+      name: "Temperature"
+      oversampling: 16x  
+      filters:
+        - median:
+            window_size: 5
+            send_every: 6
+            send_first_at: 1          
+    pressure:
+      name: "Pressure"
+      oversampling: 16x  
+      filters:
+        - median:
+            window_size: 15
+            send_every: 60
+            send_first_at: 1        
+    humidity:
+      name: "Humidity"
+      oversampling: 16x      
+      filters:
+        - median:
+            window_size: 5
+            send_every: 6
+            send_first_at: 1         
+    address: 0x77
+    update_interval: 5s
+          
+  - platform: uptime
+    name: Uptime
+    expire_after: 30min
+
+i2c:
+  scan: True
+  id: bus_a
+    
+binary_sensor:
+  - platform: status
+    name: "Status"
