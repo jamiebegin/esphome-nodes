@@ -1,0 +1,247 @@
+substitutions:
+  name: esp32-office-env
+  friendly_name: "Office Env Sensors"
+  ip_addr: 192.168.5.138
+  board: nodemcuv2
+  platform: ESP8266
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  platform: ${platform}
+  board: ${board}
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pwd
+  fast_connect: False
+  reboot_timeout: 15min
+  domain: !secret domain
+  manual_ip:
+    static_ip: ${ip_addr}
+    gateway: 192.168.5.1
+    subnet: 255.255.255.0
+
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: "America/Detroit"
+    servers: !secret ntp_server
+
+mqtt:
+  broker: !secret mqtt_broker
+  topic_prefix: esphome/devices/${name}
+  birth_message:
+    topic: esphome/availability/${name}
+    payload: online
+  will_message:
+    topic: esphome/availability/${name}
+    payload: offline
+
+# #######################################
+logger:
+
+api:
+  password: ""
+
+ota:
+  password: ""
+# #######################################
+
+switch:
+  - platform: restart
+    name: "Restart"
+  - platform: shutdown
+    name: "Shutdown"    
+
+button:
+  - platform: safe_mode
+    name: "Safe Mode Boot"
+    entity_category: diagnostic
+
+  - platform: template
+    name: "Clean Sensor"
+    on_press:
+      then:
+        - sps30.start_fan_autoclean: sps30_shop
+
+binary_sensor:
+  - platform: status
+    name: "Status"
+
+i2c:
+  scan: True
+  id: bus_b
+
+sensor:
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    update_interval: 60s
+    filters:
+      - exponential_moving_average:
+          alpha: 0.2
+          send_every: 60
+          send_first_at: 1
+  - platform: uptime
+    name: "Uptime"
+
+  - platform: bme280
+    temperature:
+      name: "Temperature"
+      id: temp
+      expire_after: 8h
+      oversampling: 16x
+      unit_of_measurement: "°C"
+      filters:
+        - exponential_moving_average:
+            alpha: 0.2
+            send_every: 300
+            send_first_at: 1
+    pressure:
+      name: "Pressure"
+      id: pressure
+      expire_after: 8h
+      filters:
+        - exponential_moving_average:
+            alpha: 0.2
+            send_every: 300
+            send_first_at: 1
+    humidity:
+      name: "Humidity"
+      id: humid
+      expire_after: 8h
+      filters:
+        - exponential_moving_average:
+            alpha: 0.2
+            send_every: 300
+            send_first_at: 1
+    address: 0x77
+    update_interval: 1s
+
+  - platform: sgp30
+    baseline:
+      eco2_baseline: 0x9076
+      tvoc_baseline: 0x9144
+    eco2:
+      name: "eCO2"
+      accuracy_decimals: 1
+      expire_after: 8h
+      filters:
+        - exponential_moving_average:
+            alpha: 0.2
+            send_every: 300
+            send_first_at: 60    
+    tvoc:
+      name: "TVOC"
+      accuracy_decimals: 1
+      expire_after: 8h
+      filters:
+        - exponential_moving_average:
+            alpha: 0.2
+            send_every: 300
+            send_first_at: 60
+    address: 0x58
+    update_interval: 1s
+    compensation:
+      temperature_source: temp
+      humidity_source: humid
+
+  - platform: sps30
+    id: sps30_shop
+    pm_1_0:
+      name: "PM <1µm Weight concentration"
+      id: "pm_1_0"
+      expire_after: 8h
+      filters:
+        - exponential_moving_average:
+            alpha: 0.2
+            send_every: 30
+            send_first_at: 6
+    pm_2_5:
+      name: "PM <2.5µm Weight concentration"
+      id: "pm_2_5"
+      expire_after: 8h
+      filters:
+        - exponential_moving_average:
+            alpha: 0.2
+            send_every: 30
+            send_first_at: 6
+    pm_4_0:
+      name: "PM <4µm Weight concentration"
+      id: "pm_4_0"
+      expire_after: 8h
+      filters:
+        - exponential_moving_average:
+            alpha: 0.2
+            send_every: 30
+            send_first_at: 6
+    pm_10_0:
+      name: "PM <10µm Weight concentration"
+      id: "pm_10_0"
+      expire_after: 8h
+      filters:
+        - exponential_moving_average:
+            alpha: 0.2
+            send_every: 30
+            send_first_at: 6
+    pmc_0_5:
+      name: "PM <0.5µm Number concentration"
+      unit_of_measurement: "qty/cm³"
+      id: "pmc_0_5"
+      expire_after: 8h
+      filters:
+        - exponential_moving_average:
+            alpha: 0.2
+            send_every: 30
+            send_first_at: 6
+    pmc_1_0:
+      name: "PM <1µm Number concentration"
+      unit_of_measurement: "qty/cm³"
+      id: "pmc_1_0"
+      expire_after: 8h
+      filters:
+        - exponential_moving_average:
+            alpha: 0.2
+            send_every: 30
+            send_first_at: 6 
+    pmc_2_5:
+      name: "PM <2.5µm Number concentration"
+      unit_of_measurement: "qty/cm³"
+      id: "pmc_2_5"
+      expire_after: 8h
+      filters:
+        - exponential_moving_average:
+            alpha: 0.2
+            send_every: 30
+            send_first_at: 6
+    pmc_4_0:
+      name: "PM <4µm Number concentration"
+      unit_of_measurement: "qty/cm³"
+      id: "pmc_4_0"
+      expire_after: 8h
+      filters:
+        - exponential_moving_average:
+            alpha: 0.2
+            send_every: 30
+            send_first_at: 6
+    pmc_10_0:
+      name: "PM <10µm Number concentration"
+      unit_of_measurement: "qty/cm³"
+      id: "pmc_10_0"
+      expire_after: 8h
+      filters:
+        - exponential_moving_average:
+            alpha: 0.2
+            send_every: 30
+            send_first_at: 6
+    pm_size:
+      name: "Typical Particle size"
+      id: "pm_size"
+      expire_after: 8h
+      filters:
+        - exponential_moving_average:
+            alpha: 0.2
+            send_every: 30
+            send_first_at: 6
+    address: 0x69
+    update_interval: 10s      
