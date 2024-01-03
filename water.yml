@@ -1,7 +1,16 @@
-esphome:
-  name: esp-water
-  platform: ESP32
+substitutions:
+  name: esp32-water
+  friendly_name: "Water Systems"
+  ip_addr: 192.168.5.239
   board: featheresp32
+  platform: ESP32
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  platform: ${platform}
+  board: ${board}
+  name_add_mac_suffix: false
 
 wifi:
   ssid: !secret wifi_ssid
@@ -10,14 +19,14 @@ wifi:
   reboot_timeout: 15min
   domain: !secret domain
   manual_ip:
-    static_ip: 192.168.5.239
+    static_ip: ${ip_addr}
     gateway: !secret gateway
     subnet: !secret subnet
     dns1: !secret dns_server
     
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
-    ssid: "Water Systems Fallback Hotspot"
+    ssid: "Water Systems Fallback"
     password: "E12bcaWpvNMD"
 
 time:
@@ -26,22 +35,43 @@ time:
     timezone: "America/Detroit"
     servers: !secret ntp_server
 
+mqtt:
+  broker: !secret mqtt_broker
+  topic_prefix: esphome/devices/${name}
+  birth_message:
+    topic: esphome/availability/${name}
+    payload: online
+  will_message:
+    topic: esphome/availability/${name}
+    payload: offline
+
+# #######################################
+logger:
+
+api:
+  password: ""
+
+ota:
+  password: ""
+# #######################################
+    
+
 # ######### Sensors ##########
 
 sensor:
   - platform: wifi_signal
-    name: "Water Systems Signal"
+    name: "WiFi Signal"
     update_interval: 1min
     force_update: true
-    expire_after: 30min
+    expire_after: 60min
     filters:
-      - median:
-          window_size: 31
-          send_every: 15
-          send_first_at: 3
+      - exponential_moving_average:
+          alpha: 0.1
+          send_every: 60
+          send_first_at: 1
           
   - platform: uptime
-    name: "Water Systems Uptime"
+    name: "Uptime"
     expire_after: 30min
     
   - platform: ultrasonic
@@ -59,10 +89,11 @@ sensor:
     filters:
       - lambda: return (( 43 - (x * 39.3701) )/40)*100;
       - filter_out: nan
-      - median:
-          window_size: 121
-          send_every: 60
+      - exponential_moving_average:
+          alpha: 0.1
+          send_every: 240
           send_first_at: 1
+
 
   - platform: ultrasonic
     trigger_pin: 14
@@ -79,9 +110,9 @@ sensor:
     filters:
       - lambda: return (( 36 - (x * 39.3701) )/33)*100;
       - filter_out: nan
-      - median:
-          window_size: 121
-          send_every: 60
+      - exponential_moving_average:
+          alpha: 0.1
+          send_every: 240
           send_first_at: 1
           
   - platform: mqtt_subscribe
@@ -91,16 +122,16 @@ sensor:
 
 binary_sensor:
   - platform: status
-    name: "Water Systems Status"
+    name: "Status"
 
 
 # ######### Switches ##########
 
 switch:
   - platform: restart
-    name: "Water Systems Restart"
+    name: "Restart"
   - platform: shutdown
-    name: "Water Systems Shutdown"
+    name: "Shutdown"
     
   - platform: gpio
     pin: A0
@@ -108,22 +139,11 @@ switch:
     id: injection_pump_relay
     inverted: no
     restore_mode: ALWAYS_OFF
-    
-# ######### Lights  ##########
 
-light:
-  - platform: status_led
-    name: "Water Systems Status LED"
-    pin: 13
+button:
+  - platform: safe_mode
+    name: "Safe Mode Boot"
+    entity_category: diagnostic
     
 ###############################
-captive_portal:
 
-# Enable logging
-logger:
-
-mqtt:
-  broker: !secret mqtt_broker
-
-ota:
-    
