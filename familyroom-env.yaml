@@ -1,15 +1,18 @@
 substitutions:
-  name: familyroom-env
+  name: esp32-familyroom-env
   friendly_name: "Family Room Env"
   ip_addr: 192.168.5.110
-  board: nodemcuv2
+  board: nodemcu-32s
 
 esphome:
   name: ${name}
   friendly_name: ${friendly_name}
   name_add_mac_suffix: false
-  platform: ESP8266
+
+esp32:
   board: ${board}
+  framework:
+    type: arduino
 
 wifi:
   ssid: !secret wifi_ssid
@@ -55,6 +58,9 @@ ota:
 
 ###############################
 
+i2c:
+  scan: True
+  id: bus_a
 
 # ######### Switches & Buttons  ##########
 switch:
@@ -70,7 +76,15 @@ button:
     
 
 # ######### Sensors ##########
+binary_sensor:
+  - platform: status
+    name: "Status"
+
 sensor:
+  - platform: uptime
+    name: Uptime
+    expire_after: 30min
+
   - platform: wifi_signal
     name: "Wifi Signal"
     update_interval: 1min
@@ -82,42 +96,143 @@ sensor:
           send_every: 300
           send_first_at: 1
 
-  - platform: bme280
+  - platform: scd30
+    co2:
+      name: "CO₂"
+      accuracy_decimals: 1
     temperature:
+      id: temp
       name: "Temperature"
-      oversampling: 16x  
+      accuracy_decimals: 2
+    humidity:
+      id: humid
+      name: "Humidity"
+      accuracy_decimals: 1
+    #temperature_offset: 1.5 °C
+    address: 0x61
+    update_interval: 5s
+
+  - platform: sgp30
+    eco2:
+      name: "eCO2"
+      accuracy_decimals: 1
+      expire_after: 8h
       filters:
         - exponential_moving_average:
             alpha: 0.1
             send_every: 300
             send_first_at: 1    
-    pressure:
-      name: "Pressure"
-      oversampling: 16x  
+    tvoc:
+      name: "TVOC"
+      accuracy_decimals: 1
+      expire_after: 8h
       filters:
         - exponential_moving_average:
             alpha: 0.1
             send_every: 300
             send_first_at: 1
-    humidity:
-      name: "Humidity"
-      oversampling: 16x      
-      filters:
-        - exponential_moving_average:
-            alpha: 0.1
-            send_every: 300
-            send_first_at: 1
-    address: 0x77
+    compensation:
+      temperature_source: temp
+      humidity_source: humid      
+    address: 0x58
     update_interval: 1s
-          
-  - platform: uptime
-    name: Uptime
-    expire_after: 30min
 
-i2c:
-  scan: True
-  id: bus_a
-    
-binary_sensor:
-  - platform: status
-    name: "Status"
+  - platform: sps30
+    id: sps30_fam
+    pm_1_0:
+      name: "PM <1µm Weight concentration"
+      id: "pm_1_0"
+      expire_after: 8h
+      filters:
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 30
+            send_first_at: 1
+    pm_2_5:
+      name: "PM <2.5µm Weight concentration"
+      id: "pm_2_5"
+      expire_after: 8h
+      filters:
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 30
+            send_first_at: 1
+    pm_4_0:
+      name: "PM <4µm Weight concentration"
+      id: "pm_4_0"
+      expire_after: 8h
+      filters:
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 30
+            send_first_at: 1
+    pm_10_0:
+      name: "PM <10µm Weight concentration"
+      id: "pm_10_0"
+      expire_after: 8h
+      filters:
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 30
+            send_first_at: 1
+    pmc_0_5:
+      name: "PM <0.5µm Number concentration"
+      unit_of_measurement: "qty/cm³"
+      id: "pmc_0_5"
+      expire_after: 8h
+      filters:
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 30
+            send_first_at: 1
+    pmc_1_0:
+      name: "PM <1µm Number concentration"
+      unit_of_measurement: "qty/cm³"
+      id: "pmc_1_0"
+      expire_after: 8h
+      filters:
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 30
+            send_first_at: 1
+    pmc_2_5:
+      name: "PM <2.5µm Number concentration"
+      unit_of_measurement: "qty/cm³"
+      id: "pmc_2_5"
+      expire_after: 8h
+      filters:
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 30
+            send_first_at: 1
+    pmc_4_0:
+      name: "PM <4µm Number concentration"
+      unit_of_measurement: "qty/cm³"
+      id: "pmc_4_0"
+      expire_after: 8h
+      filters:
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 30
+            send_first_at: 1
+    pmc_10_0:
+      name: "PM <10µm Number concentration"
+      unit_of_measurement: "qty/cm³"
+      id: "pmc_10_0"
+      expire_after: 8h
+      filters:
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 30
+            send_first_at: 1
+    pm_size:
+      name: "Typical Particle size"
+      id: "pm_size"
+      expire_after: 8h
+      filters:
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 30
+            send_first_at: 1
+    address: 0x69
+    update_interval: 10s    
