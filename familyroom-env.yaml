@@ -73,7 +73,12 @@ button:
   - platform: safe_mode
     name: "Safe Mode Boot"
     entity_category: diagnostic
-    
+
+  - platform: template
+    name: "Clean Sensor"
+    on_press:
+      then:
+        - sps30.start_fan_autoclean: sps30_fam
 
 # ######### Sensors ##########
 binary_sensor:
@@ -89,46 +94,82 @@ sensor:
     name: "Wifi Signal"
     update_interval: 1min
     force_update: true
-    expire_after: 30min
+    expire_after: 60min
     filters:
-      - exponential_moving_average:
-          alpha: 0.1
-          send_every: 300
+      - median:
+          window_size: 241
+          send_every: 60
           send_first_at: 1
+
+  # Grab the barometric pressure from the office sensor for CO2 calc
+  #- platform: homeassistant
+  #  id: baro_pressure
+  #  entity_id: sensor.office_env_pressure
+  #  filters:
+  #    - lambda: return x * 68.9476; # Convert PSI to mBar
 
   - platform: scd30
     co2:
       name: "CO₂"
       accuracy_decimals: 1
+      force_update: true
+      filters:
+        - median:
+            window_size: 601
+            send_every: 300
+            send_first_at: 1       
     temperature:
       id: temp
       name: "Temperature"
-      accuracy_decimals: 2
+      accuracy_decimals: 0
+      force_update: true      
+      filters:
+        #- offset: -3.4
+        - median:
+            window_size: 601
+            send_every: 300
+            send_first_at: 1
+       # - calibrate_linear:
+       #     method: least_squares
+       #     datapoints:
+       #     # Map 0.0 (from sensor) to 1.0 (true value)
+       #       - 0.0 -> 1.0
+       #       - 10.0 -> 12.1    
     humidity:
       id: humid
       name: "Humidity"
-      accuracy_decimals: 1
-    #temperature_offset: 1.5 °C
+      accuracy_decimals: 0
+      force_update: true
+      filters:
+        - median:
+            window_size: 601
+            send_every: 300
+            send_first_at: 1
+    temperature_offset: 3.4 °C
+    ambient_pressure_compensation: 0.983
+    altitude_compensation: 262m
     address: 0x61
-    update_interval: 5s
+    update_interval: 1s
 
   - platform: sgp30
     eco2:
       name: "eCO2"
       accuracy_decimals: 1
       expire_after: 8h
+      force_update: true      
       filters:
-        - exponential_moving_average:
-            alpha: 0.1
+        - median:
+            window_size: 601
             send_every: 300
-            send_first_at: 1    
+            send_first_at: 1
     tvoc:
       name: "TVOC"
       accuracy_decimals: 1
       expire_after: 8h
+      force_update: true      
       filters:
-        - exponential_moving_average:
-            alpha: 0.1
+        - median:
+            window_size: 601
             send_every: 300
             send_first_at: 1
     compensation:
@@ -143,96 +184,106 @@ sensor:
       name: "PM <1µm Weight concentration"
       id: "pm_1_0"
       expire_after: 8h
+      force_update: true
       filters:
-        - exponential_moving_average:
-            alpha: 0.1
-            send_every: 30
+        - median:
+            window_size: 601
+            send_every: 300
             send_first_at: 1
     pm_2_5:
       name: "PM <2.5µm Weight concentration"
       id: "pm_2_5"
       expire_after: 8h
+      force_update: true
       filters:
-        - exponential_moving_average:
-            alpha: 0.1
-            send_every: 30
+        - median:
+            window_size: 601
+            send_every: 300
             send_first_at: 1
     pm_4_0:
       name: "PM <4µm Weight concentration"
       id: "pm_4_0"
       expire_after: 8h
+      force_update: true
       filters:
-        - exponential_moving_average:
-            alpha: 0.1
-            send_every: 30
+        - median:
+            window_size: 601
+            send_every: 300
             send_first_at: 1
     pm_10_0:
       name: "PM <10µm Weight concentration"
       id: "pm_10_0"
       expire_after: 8h
+      force_update: true
       filters:
-        - exponential_moving_average:
-            alpha: 0.1
-            send_every: 30
+        - median:
+            window_size: 601
+            send_every: 300
             send_first_at: 1
     pmc_0_5:
       name: "PM <0.5µm Number concentration"
       unit_of_measurement: "qty/cm³"
       id: "pmc_0_5"
       expire_after: 8h
+      force_update: true
       filters:
-        - exponential_moving_average:
-            alpha: 0.1
-            send_every: 30
+        - median:
+            window_size: 601
+            send_every: 300
             send_first_at: 1
     pmc_1_0:
       name: "PM <1µm Number concentration"
       unit_of_measurement: "qty/cm³"
       id: "pmc_1_0"
       expire_after: 8h
+      force_update: true
       filters:
-        - exponential_moving_average:
-            alpha: 0.1
-            send_every: 30
+        - median:
+            window_size: 601
+            send_every: 300
             send_first_at: 1
     pmc_2_5:
       name: "PM <2.5µm Number concentration"
       unit_of_measurement: "qty/cm³"
       id: "pmc_2_5"
       expire_after: 8h
+      force_update: true
       filters:
-        - exponential_moving_average:
-            alpha: 0.1
-            send_every: 30
+        - median:
+            window_size: 601
+            send_every: 300
             send_first_at: 1
     pmc_4_0:
       name: "PM <4µm Number concentration"
       unit_of_measurement: "qty/cm³"
       id: "pmc_4_0"
       expire_after: 8h
+      force_update: true
       filters:
-        - exponential_moving_average:
-            alpha: 0.1
-            send_every: 30
+        - median:
+            window_size: 601
+            send_every: 300
             send_first_at: 1
     pmc_10_0:
       name: "PM <10µm Number concentration"
       unit_of_measurement: "qty/cm³"
       id: "pmc_10_0"
       expire_after: 8h
+      force_update: true
       filters:
-        - exponential_moving_average:
-            alpha: 0.1
-            send_every: 30
+        - median:
+            window_size: 601
+            send_every: 300
             send_first_at: 1
     pm_size:
       name: "Typical Particle size"
       id: "pm_size"
       expire_after: 8h
+      force_update: true
       filters:
-        - exponential_moving_average:
-            alpha: 0.1
-            send_every: 30
+        - median:
+            window_size: 601
+            send_every: 300
             send_first_at: 1
     address: 0x69
     update_interval: 10s    
