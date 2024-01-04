@@ -10,6 +10,7 @@ esphome:
   friendly_name: ${friendly_name}
   platform: ${platform}
   board: ${board}
+  name_add_mac_suffix: false
 
 wifi:
   ssid: !secret wifi_ssid
@@ -75,12 +76,13 @@ i2c:
 
 sensor:
   - platform: wifi_signal
-    name: "WiFi Signal"
-    update_interval: 60s
+    name: "Wifi Signal"
+    update_interval: 1min
+    force_update: true
     expire_after: 60min
     filters:
-      - exponential_moving_average:
-          alpha: 0.1
+      - median:
+          window_size: 241
           send_every: 60
           send_first_at: 1
 
@@ -95,53 +97,51 @@ sensor:
       oversampling: 16x
       unit_of_measurement: "°C"
       filters:
-        - exponential_moving_average:
-            alpha: 0.1
+        - median:
+            window_size: 601
             send_every: 300
-            send_first_at: 1
+            send_first_at: 1 
     pressure:
       name: "Pressure"
       id: pressure
       expire_after: 8h
       filters:
-        - exponential_moving_average:
-            alpha: 0.1
+        - median:
+            window_size: 601
             send_every: 300
-            send_first_at: 1
+            send_first_at: 1 
     humidity:
       name: "Humidity"
       id: humid
       expire_after: 8h
       filters:
-        - exponential_moving_average:
-            alpha: 0.1
+        - median:
+            window_size: 601
             send_every: 300
-            send_first_at: 1
+            send_first_at: 1 
     address: 0x77
     update_interval: 1s
 
   - platform: sgp30
-    baseline:
-      eco2_baseline: 0x9076
-      tvoc_baseline: 0x9144
+    store_baseline: yes
     eco2:
       name: "eCO2"
       accuracy_decimals: 1
       expire_after: 8h
       filters:
-        - exponential_moving_average:
-            alpha: 0.1
+        - median:
+            window_size: 601
             send_every: 300
-            send_first_at: 60    
+            send_first_at: 1
     tvoc:
       name: "TVOC"
       accuracy_decimals: 1
       expire_after: 8h
       filters:
-        - exponential_moving_average:
-            alpha: 0.1
+        - median:
+            window_size: 601
             send_every: 300
-            send_first_at: 60
+            send_first_at: 1
     address: 0x58
     update_interval: 1s
     compensation:
@@ -154,96 +154,106 @@ sensor:
       name: "PM <1µm Weight concentration"
       id: "pm_1_0"
       expire_after: 8h
+      force_update: true
       filters:
-        - exponential_moving_average:
-            alpha: 0.1
-            send_every: 30
-            send_first_at: 6
+        - median:
+            window_size: 601
+            send_every: 300
+            send_first_at: 1
     pm_2_5:
       name: "PM <2.5µm Weight concentration"
       id: "pm_2_5"
       expire_after: 8h
+      force_update: true
       filters:
-        - exponential_moving_average:
-            alpha: 0.1
-            send_every: 30
-            send_first_at: 6
+        - median:
+            window_size: 601
+            send_every: 300
+            send_first_at: 1
     pm_4_0:
       name: "PM <4µm Weight concentration"
       id: "pm_4_0"
       expire_after: 8h
+      force_update: true
       filters:
-        - exponential_moving_average:
-            alpha: 0.1
-            send_every: 30
-            send_first_at: 6
+        - median:
+            window_size: 601
+            send_every: 300
+            send_first_at: 1
     pm_10_0:
       name: "PM <10µm Weight concentration"
       id: "pm_10_0"
       expire_after: 8h
+      force_update: true
       filters:
-        - exponential_moving_average:
-            alpha: 0.1
-            send_every: 30
-            send_first_at: 6
+        - median:
+            window_size: 601
+            send_every: 300
+            send_first_at: 1
     pmc_0_5:
       name: "PM <0.5µm Number concentration"
       unit_of_measurement: "qty/cm³"
       id: "pmc_0_5"
       expire_after: 8h
+      force_update: true
       filters:
-        - exponential_moving_average:
-            alpha: 0.1
-            send_every: 30
-            send_first_at: 6
+        - median:
+            window_size: 601
+            send_every: 300
+            send_first_at: 1
     pmc_1_0:
       name: "PM <1µm Number concentration"
       unit_of_measurement: "qty/cm³"
       id: "pmc_1_0"
       expire_after: 8h
+      force_update: true
       filters:
-        - exponential_moving_average:
-            alpha: 0.1
-            send_every: 30
-            send_first_at: 6 
+        - median:
+            window_size: 601
+            send_every: 300
+            send_first_at: 1
     pmc_2_5:
       name: "PM <2.5µm Number concentration"
       unit_of_measurement: "qty/cm³"
       id: "pmc_2_5"
       expire_after: 8h
+      force_update: true
       filters:
-        - exponential_moving_average:
-            alpha: 0.1
-            send_every: 30
-            send_first_at: 6
+        - median:
+            window_size: 601
+            send_every: 300
+            send_first_at: 1
     pmc_4_0:
       name: "PM <4µm Number concentration"
       unit_of_measurement: "qty/cm³"
       id: "pmc_4_0"
       expire_after: 8h
+      force_update: true
       filters:
-        - exponential_moving_average:
-            alpha: 0.1
-            send_every: 30
-            send_first_at: 6
+        - median:
+            window_size: 601
+            send_every: 300
+            send_first_at: 1
     pmc_10_0:
       name: "PM <10µm Number concentration"
       unit_of_measurement: "qty/cm³"
       id: "pmc_10_0"
       expire_after: 8h
+      force_update: true
       filters:
-        - exponential_moving_average:
-            alpha: 0.1
-            send_every: 30
-            send_first_at: 6
+        - median:
+            window_size: 601
+            send_every: 300
+            send_first_at: 1
     pm_size:
       name: "Typical Particle size"
       id: "pm_size"
       expire_after: 8h
+      force_update: true
       filters:
-        - exponential_moving_average:
-            alpha: 0.1
-            send_every: 30
-            send_first_at: 6
+        - median:
+            window_size: 601
+            send_every: 300
+            send_first_at: 1
     address: 0x69
     update_interval: 10s

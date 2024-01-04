@@ -8,9 +8,12 @@ substitutions:
 esphome:
   name: ${name}
   friendly_name: ${friendly_name}
-  platform: ${platform}
-  board: ${board}
   name_add_mac_suffix: false
+
+esp32:
+  board: ${board}
+  framework:
+    type: arduino
 
 wifi:
   ssid: !secret wifi_ssid
@@ -60,13 +63,13 @@ ota:
 
 sensor:
   - platform: wifi_signal
-    name: "WiFi Signal"
+    name: "Wifi Signal"
     update_interval: 1min
     force_update: true
     expire_after: 60min
     filters:
-      - exponential_moving_average:
-          alpha: 0.1
+      - median:
+          window_size: 241
           send_every: 60
           send_first_at: 1
           
@@ -89,9 +92,9 @@ sensor:
     filters:
       - lambda: return (( 43 - (x * 39.3701) )/40)*100;
       - filter_out: nan
-      - exponential_moving_average:
-          alpha: 0.1
-          send_every: 240
+      - median:
+          window_size: 960
+          send_every: 480
           send_first_at: 1
 
 
@@ -110,9 +113,9 @@ sensor:
     filters:
       - lambda: return (( 36 - (x * 39.3701) )/33)*100;
       - filter_out: nan
-      - exponential_moving_average:
-          alpha: 0.1
-          send_every: 240
+      - median:
+          window_size: 960
+          send_every: 480
           send_first_at: 1
           
   - platform: mqtt_subscribe

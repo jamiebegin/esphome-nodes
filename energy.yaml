@@ -1,7 +1,19 @@
-esphome:
-  name: esp-energy1
-  platform: ESP32
+substitutions:
+  name: esp32-energy1
+  friendly_name: "Energy Monitor 1"
+  ip_addr: 192.168.5.209
   board: nodemcu-32s
+  platform: ESP32
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  name_add_mac_suffix: false
+
+esp32:
+  board: ${board}
+  framework:
+    type: arduino
 
 wifi:
   ssid: !secret wifi_ssid
@@ -10,13 +22,13 @@ wifi:
   reboot_timeout: 15min
   domain: !secret domain
   manual_ip:
-    static_ip: 192.168.5.209
+    static_ip: ${ip_addr}
     gateway: !secret gateway
     subnet: !secret subnet
     dns1: !secret dns_server
 
   ap:
-    ssid: "Energy Fallback Hotspot"
+    ssid: "Energy Fallback"
     password: "E12bcaWpvNMD"
 
 time:
@@ -25,19 +37,39 @@ time:
     timezone: "America/Detroit"
     servers: !secret ntp_server
 
+mqtt:
+  broker: !secret mqtt_broker
+  topic_prefix: esphome/devices/${name}
+  birth_message:
+    topic: esphome/availability/${name}
+    payload: online
+  will_message:
+    topic: esphome/availability/${name}
+    payload: offline  
+
+# #######################################
+logger:
+
+api:
+  password: ""
+
+ota:
+  password: ""
+# #######################################
+
 # ######### Switches ##########
 
 switch:
   - platform: restart
-    name: "Energy Monitor Restart"
+    name: "Restart"
   - platform: shutdown
-    name: "Energy Monitor Shutdown"
+    name: "Shutdown"
 
 # ######### Sensors ##########
 
 binary_sensor:
   - platform: status
-    name: "Energy Monitor Status"
+    name: "Status"
 
 # Example configuration entry for split single phase meter
 spi:
@@ -47,18 +79,18 @@ spi:
 
 sensor:
   - platform: wifi_signal
-    name: "Energy Monitor Signal"
+    name: "Wifi Signal"
     update_interval: 1min
     force_update: true
-    expire_after: 30min
+    expire_after: 60min
     filters:
       - median:
-          window_size: 31
-          send_every: 15
-          send_first_at: 3
+          window_size: 241
+          send_every: 60
+          send_first_at: 1
 
   - platform: uptime
-    name: "Energy Monitor Uptime"         
+    name: "Uptime"         
     expire_after: 30min
      
   - platform: atm90e32
@@ -88,15 +120,15 @@ sensor:
       power:
         name: "Energy Active Power B"
         filters:
-          - multiply: -1.0
+          - multiply: 1.0
       reactive_power:
         name: "Energy Reactive Power B"
         filters:
-          - multiply: -1.0        
+          - multiply: 1.0        
       power_factor:
         name: "Energy Power Factor B"
         filters:
-          - multiply: -1.0        
+          - multiply: 1.0        
       gain_voltage: 3920
       gain_ct: 39473
     frequency:
@@ -109,12 +141,3 @@ sensor:
     update_interval: 60s
 
 ###############################
-captive_portal:
-
-# Enable logging
-logger:
-
-mqtt:
-  broker: !secret mqtt_broker
-
-ota:    
