@@ -1,0 +1,153 @@
+substitutions:
+  name: esp32-humidifer
+  friendly_name: "Humidifer Control"
+  ip_addr: 192.168.5.111
+  board: featheresp32
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  name_add_mac_suffix: false
+
+esp32:
+  board: ${board}
+  framework:
+    type: arduino
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pwd
+  fast_connect: False
+  reboot_timeout: 15min
+  domain: !secret domain
+  manual_ip:
+    static_ip: ${ip_addr}
+    gateway: !secret gateway
+    subnet: !secret subnet
+    dns1: !secret dns_server
+
+  ap:
+    ssid: "${name}"
+    password: "E12bcaWpvNMD"
+
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: "America/Detroit"
+    servers: !secret ntp_server
+
+mqtt:
+  broker: !secret mqtt_broker
+  topic_prefix: esphome/devices/${name}
+  birth_message:
+    topic: esphome/availability/${name}
+    payload: online
+  will_message:
+    topic: esphome/availability/${name}
+    payload: offline  
+
+# #######################################
+logger:
+
+api:
+  password: ""
+
+ota:
+  password: ""
+# #######################################
+
+###############################
+
+i2c:
+  scan: True
+  id: bus_a
+
+# ######### Switches & Buttons  ##########
+switch:
+  - platform: restart
+    name: "Restart"
+  - platform: shutdown
+    name: "Shutdown"
+
+  - platform: gpio
+    pin: 26
+    name: "Call Humidity"
+
+button:
+  - platform: safe_mode
+    name: "Safe Mode Boot"
+    entity_category: diagnostic
+
+
+# ######### Sensors ##########
+binary_sensor:
+  - platform: status
+    name: "Status"
+
+sensor:
+  - platform: uptime
+    name: Uptime
+    expire_after: 30min
+
+  - platform: wifi_signal
+    name: "Wifi Signal"
+    update_interval: 1min
+    force_update: true
+    expire_after: 60min
+    filters:
+      - median:
+          window_size: 241
+          send_every: 60
+          send_first_at: 1
+
+  - platform: bme680
+    temperature:
+      name: "Temperature"
+      oversampling: 16x
+    pressure:
+      name: "Pressure"
+    humidity:
+      id: "humidity"
+      name: "Humidity"
+    gas_resistance:
+      id: "gas_resistance"
+      name: "Gas Resistance"
+    address: 0x77
+    update_interval: 60s
+  - platform: template
+    name: "BME680 Indoor Air Quality"
+    id: iaq
+    icon: "mdi:gauge"
+    # caulculation: comp_gas = log(R_gas[ohm]) + 0.04 log(Ohm)/%rh * hum[%rh]
+    lambda: |-
+      return log(id(gas_resistance).state) + 0.04 *  id(humidity).state;
+
+text_sensor:
+  - platform: template
+    name: "IAQ Classification"
+    icon: "mdi:checkbox-marked-circle-outline"
+    lambda: |-
+      if (int(id(iaq).state) <= 50) {
+        return {"Excellent"};
+      }
+      else if (int(id(iaq).state) <= 100) {
+        return {"Good"};
+      }
+      else if (int(id(iaq).state) <= 150) {
+        return {"Lightly polluted"};
+      }
+      else if (int(id(iaq).state) <= 200) {
+        return {"Moderately polluted"};
+      }
+      else if (int(id(iaq).state) <= 250) {
+        return {"Heavily polluted"};
+      }
+      else if (int(id(iaq).state) <= 350) {
+        return {"Severely polluted"};
+      }
+      else if (int(id(iaq).state) <= 500) {
+        return {"Extremely polluted"};
+      }
+      else {
+        return {"unknown"};
+      }          
