@@ -87,6 +87,10 @@ button:
         - sps30.start_fan_autoclean: sps30_fam
 
 # ######### Sensors ##########
+text_sensor:
+  - platform: version
+    name: "ESPHome Version"
+
 binary_sensor:
   - platform: status
     name: "Status"
