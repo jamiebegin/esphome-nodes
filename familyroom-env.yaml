@@ -119,6 +119,7 @@ sensor:
       name: "CO₂"
       accuracy_decimals: 1
       force_update: true
+      expire_after: 60min
       filters:
         - median:
             window_size: 601
@@ -128,7 +129,8 @@ sensor:
       id: temp
       name: "Temperature"
       accuracy_decimals: 0
-      force_update: true      
+      force_update: true
+      expire_after: 60min
       filters:
         #- offset: -3.4
         - median:
@@ -146,6 +148,7 @@ sensor:
       name: "Humidity"
       accuracy_decimals: 0
       force_update: true
+      expire_after: 60min
       filters:
         - median:
             window_size: 601

@@ -70,9 +70,41 @@ switch:
     name: "Shutdown"
 
   - platform: gpio
+    id: call_humid
     pin: 26
     name: "Call Humidity"
+    internal: true
 
+  - platform: template
+    id: humidifier_toggle
+    name: "Generate Steam"
+    icon: mdi:waves-arrow-up
+    lambda: |-
+      if (id(call_humid).state) {
+        return true;
+      } else {
+        return false;
+      }    
+    turn_on_action:
+      then:
+        - if: 
+            condition:
+              lambda: |-
+                // Make sure furnace fan is on and family room
+                // humidity is <60%
+                if (id(fan_is_on).state == "on") {
+                  if(id(source_humid).state < 60 ) {
+                    return true;
+                  } else {
+                    return false;
+                  }
+                } else {
+                  return false;
+                }
+            then:          
+              - switch.turn_on: call_humid
+    turn_off_action:
+      - switch.turn_off: call_humid
 button:
   - platform: safe_mode
     name: "Safe Mode Boot"
@@ -100,29 +132,83 @@ sensor:
           send_every: 60
           send_first_at: 1
 
+  - platform: homeassistant
+    id: source_humid
+    entity_id: sensor.esp32_familyroom_env_humidity
+
   - platform: bme680
     temperature:
       name: "Temperature"
       oversampling: 16x
+      force_update: true
+      expire_after: 60min
+      filters:
+        - median:
+            window_size: 601
+            send_every: 300
+            send_first_at: 1      
     pressure:
       name: "Pressure"
+      force_update: true
+      expire_after: 60min
+      filters:
+        - median:
+            window_size: 601
+            send_every: 300
+            send_first_at: 1      
     humidity:
       id: "humidity"
       name: "Humidity"
+      force_update: true
+      expire_after: 60min
+      filters:
+        - median:
+            window_size: 601
+            send_every: 300
+            send_first_at: 1      
     gas_resistance:
       id: "gas_resistance"
       name: "Gas Resistance"
+      force_update: true
+      expire_after: 60min
+      filters:
+        - median:
+            window_size: 601
+            send_every: 300
+            send_first_at: 1      
     address: 0x77
-    update_interval: 60s
+    update_interval: 1s
+
   - platform: template
     name: "BME680 Indoor Air Quality"
     id: iaq
     icon: "mdi:gauge"
+    expire_after: 60min
     # caulculation: comp_gas = log(R_gas[ohm]) + 0.04 log(Ohm)/%rh * hum[%rh]
     lambda: |-
       return log(id(gas_resistance).state) + 0.04 *  id(humidity).state;
 
 text_sensor:
+  - platform: version
+    name: "ESPHome Version"
+
+  - platform: homeassistant
+    id: fan_is_on
+    entity_id: climate.main_floor
+    attribute: fan_mode
+    on_value:
+      then:
+        - if:
+            condition:
+              lambda: |-
+                if (x.c_str() != "on") {
+                  return true;
+                } else {
+                  return false;
+                }
+            then:
+              - switch.turn_off: humidifier_toggle
+
   - platform: template
     name: "IAQ Classification"
     icon: "mdi:checkbox-marked-circle-outline"
