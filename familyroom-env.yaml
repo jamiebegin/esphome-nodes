@@ -91,6 +91,33 @@ text_sensor:
   - platform: version
     name: "ESPHome Version"
 
+  - platform: template
+    name: "PM25 Limits"
+    icon: "mdi:checkbox-marked-circle-outline"
+    lambda: |-
+      if (int(id(pm_2_5).state) < 5 && int(id(pm25_24hr).state) < 15) {
+        return {"Ok"};
+      }
+      else if (int(id(pm_2_5).state) >= 5 || int(id(pm25_24hr).state) >= 15) {
+        return {"Warning"};
+      }
+      else {
+        return {"unknown"};
+      }
+  - platform: template
+    name: "PM10 Limits"
+    icon: "mdi:checkbox-marked-circle-outline"
+    lambda: |-
+      if (int(id(pm_10_0).state) < 54) {
+        return {"Ok"};
+      }
+      else if (int(id(pm_10_0).state) >= 54) {
+        return {"Warning"};
+      }
+      else {
+        return {"unknown"};
+      }
+
 binary_sensor:
   - platform: status
     name: "Status"
@@ -117,6 +144,11 @@ sensor:
   #  entity_id: sensor.office_env_pressure
   #  filters:
   #    - lambda: return x * 68.9476; # Convert PSI to mBar
+
+  - platform: homeassistant
+    id: pm25_24hr
+    internal: true
+    entity_id: sensor.family_room_pm25_24_hrs
 
   - platform: scd30
     co2:
@@ -299,4 +331,4 @@ sensor:
             send_every: 300
             send_first_at: 1
     address: 0x69
-    update_interval: 10s    
+    update_interval: 10s
