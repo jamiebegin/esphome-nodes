@@ -325,14 +325,14 @@ script:
       lambda: |-
         ESP_LOGD("eval_humid", "The value of remote sensor is: %f", current_humid);
 
-        if (int(id(humid_min).state) <= int(current_humid)) {
+        if ( int(current_humid) <= int(id(humid_min).state) ) {
           // Humidity low
           if (bool(id(humidifier_status).state) == false) {
             // Humidifer is off so turn on
             id(generate_steam).publish_state(true);
           }
         }
-        else if (int(id(humid_min).state) >= int(current_humid)) {
+        else if ( int(current_humid) >= int(id(humid_max).state) ) {
           // Humidity high
           if (bool(id(humidifier_status).state) == true) {
             // Humidifer is on so turn off
@@ -340,18 +340,5 @@ script:
           }
         }
         else {
-          // Not implemented
-          /*
-          HomeassistantServiceResponse resp;
-          HomeassistantServiceMap entity_id_kv;
-          ESP_LOGE("custom", "Could not read remote humidity. Humidifer Controller shutting down.");
-
-          resp.service = "notify.persistent_notification";
-          entity_id_kv.key = "message";
-          entity_id_kv.value = "Could not read remote humidity. Humidifer Controller shutting down.";
-          resp.data.push_back(entity_id_kv);
-          id(api_server).send_homeassistant_service_call(resp);
-
-          id(shutdown_controller).turn_on();
-          */
+          ESP_LOGE("custom", "Could not read remote humidity!");
         }
