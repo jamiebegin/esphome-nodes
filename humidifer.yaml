@@ -50,6 +50,7 @@ mqtt:
 logger:
 
 api:
+  id: api_server  
 
 ota:
 
@@ -67,6 +68,7 @@ switch:
     name: "Restart Controller"
   - platform: shutdown
     name: "Shutdown Controller"
+    id: shutdown_controller
 
   - platform: template
     id: fan_mode_on
@@ -161,7 +163,7 @@ binary_sensor:
   - platform: template
     name: "Humidifer Status"
     id: humidifier_status
-    icon: mdi:waves-arrow-up
+    icon: mdi:air-humidifier
     lambda: |-
       if (id(generate_steam).state) {
         return true;
@@ -266,6 +268,7 @@ sensor:
 text_sensor:
   - platform: version
     name: "ESPHome Version"
+    icon: "mdi:chip"
 
   - platform: homeassistant
     id: fan_mode
@@ -315,6 +318,9 @@ script:
       current_humid: float
     then:
       lambda: |-
+        HomeassistantServiceResponse resp;
+        HomeassistantServiceMap entity_id_kv;
+
         if (int(id(humid_min).state) <= current_humid) {
           // Humidity low
           if (bool(id(humidifier_status).state) == false) {
@@ -328,4 +334,18 @@ script:
             // Humidifer is on so turn off
             id(generate_steam).publish_state(false);
           }
+        }
+        else {
+          ESP_LOGE("custom", "Could not read remote humidity. Humidifer Controller shutting down.");
+          
+
+          resp.service = "notify.persistent_notification";
+  
+          entity_id_kv.key = "message";
+          entity_id_kv.value = "Could not read remote humidity. Humidifer Controller shutting down.";
+
+          resp.data.push_back(entity_id_kv);
+          id(api_server).send_homeassistant_service_call(resp);
+
+          id(shutdown_controller).turn_on();
         }

@@ -90,6 +90,7 @@ button:
 text_sensor:
   - platform: version
     name: "ESPHome Version"
+    icon: "mdi:chip"
 
   - platform: template
     name: "PM25 Limits"
