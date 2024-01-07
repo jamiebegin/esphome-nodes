@@ -199,7 +199,7 @@ sensor:
   - platform: mqtt_subscribe
     name: "Humidity Max Limit"
     id: humid_max
-    topic: esphome/devices/${name}humidity_level/max
+    topic: esphome/devices/${name}/humidity_level/max
     on_value:
       - script.execute:
           id: eval_humid
@@ -318,8 +318,7 @@ script:
       current_humid: float
     then:
       lambda: |-
-        HomeassistantServiceResponse resp;
-        HomeassistantServiceMap entity_id_kv;
+        ESP_LOGD("custom", "The value of remote sensor is: %f", current_humid);
 
         if (int(id(humid_min).state) <= current_humid) {
           // Humidity low
@@ -336,16 +335,18 @@ script:
           }
         }
         else {
+          // Not implemented
+          /*
+          HomeassistantServiceResponse resp;
+          HomeassistantServiceMap entity_id_kv;
           ESP_LOGE("custom", "Could not read remote humidity. Humidifer Controller shutting down.");
-          
 
           resp.service = "notify.persistent_notification";
-  
           entity_id_kv.key = "message";
           entity_id_kv.value = "Could not read remote humidity. Humidifer Controller shutting down.";
-
           resp.data.push_back(entity_id_kv);
           id(api_server).send_homeassistant_service_call(resp);
 
           id(shutdown_controller).turn_on();
+          */
         }
