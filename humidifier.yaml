@@ -325,7 +325,10 @@ script:
       lambda: |-
         ESP_LOGD("eval_humid", "The value of remote sensor is: %f", current_humid);
 
-        if ( int(current_humid) <= int(id(humid_min).state) ) {
+        if ( isnan(current_humid) ) {
+          ESP_LOGE("custom", "Could not read remote humidity!");
+        }
+        else if ( int(current_humid) <= int(id(humid_min).state) ) {
           // Humidity low
           if (bool(id(humidifier_status).state) == false) {
             // Humidifer is off so turn on
@@ -338,7 +341,4 @@ script:
             // Humidifer is on so turn off
             id(generate_steam).publish_state(false);
           }
-        }
-        else {
-          ESP_LOGE("custom", "Could not read remote humidity!");
         }
