@@ -1,6 +1,6 @@
 substitutions:
-  name: esp32-humidifer
-  friendly_name: "Humidifer Control"
+  name: esp32-humidifier
+  friendly_name: "Humidifier Control"
   ip_addr: 192.168.5.111
   board: featheresp32
 
