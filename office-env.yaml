@@ -106,28 +106,28 @@ sensor:
       oversampling: 16x
       unit_of_measurement: "°C"
       filters:
-        - median:
-            window_size: 601
+        - exponential_moving_average:
+            alpha: 0.1
             send_every: 300
-            send_first_at: 1 
+            send_first_at: 1
     pressure:
       name: "Pressure"
       id: pressure
       expire_after: 8h
       filters:
-        - median:
-            window_size: 601
+        - exponential_moving_average:
+            alpha: 0.1
             send_every: 300
-            send_first_at: 1 
+            send_first_at: 1
     humidity:
       name: "Humidity"
       id: humid
       expire_after: 8h
       filters:
-        - median:
-            window_size: 601
+        - exponential_moving_average:
+            alpha: 0.1
             send_every: 300
-            send_first_at: 1 
+            send_first_at: 1
     address: 0x77
     update_interval: 1s
 

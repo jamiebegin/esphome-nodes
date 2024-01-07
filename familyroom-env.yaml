@@ -170,8 +170,8 @@ sensor:
       expire_after: 60min
       filters:
         #- offset: -3.4
-        - median:
-            window_size: 601
+        - exponential_moving_average:
+            alpha: 0.1
             send_every: 300
             send_first_at: 1
        # - calibrate_linear:
@@ -187,8 +187,8 @@ sensor:
       force_update: true
       expire_after: 60min
       filters:
-        - median:
-            window_size: 601
+        - exponential_moving_average:
+            alpha: 0.1
             send_every: 300
             send_first_at: 1
     temperature_offset: 3.4 °C
