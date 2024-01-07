@@ -94,26 +94,26 @@ text_sensor:
 
   - platform: template
     name: "PM25 Limits"
-    icon: "mdi:checkbox-marked-circle-outline"
+    icon: "mdi:virus"
     lambda: |-
       if (int(id(pm_2_5).state) < 5 && int(id(pm25_24hr).state) < 15) {
         return {"Ok"};
       }
       else if (int(id(pm_2_5).state) >= 5 || int(id(pm25_24hr).state) >= 15) {
-        return {"Warning"};
+        return {"Warning!"};
       }
       else {
         return {"unknown"};
       }
   - platform: template
     name: "PM10 Limits"
-    icon: "mdi:checkbox-marked-circle-outline"
+    icon: "mdi:virus"
     lambda: |-
       if (int(id(pm_10_0).state) < 54) {
         return {"Ok"};
       }
       else if (int(id(pm_10_0).state) >= 54) {
-        return {"Warning"};
+        return {"Warning!"};
       }
       else {
         return {"unknown"};

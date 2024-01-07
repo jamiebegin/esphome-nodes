@@ -50,6 +50,7 @@ mqtt:
 logger:
 
 api:
+  id: api_server  
 
 ota:
 
@@ -67,18 +68,17 @@ switch:
     name: "Restart Controller"
   - platform: shutdown
     name: "Shutdown Controller"
+    id: shutdown_controller
 
   - platform: template
-    id: fan_enabled
+    id: fan_mode_on
     internal: true
     optimistic: true
-    turn_off_action:
-      # Turn off the humidifier if furnance fan is not "on"
-      - switch.turn_off: call_humid
     on_turn_on:
       - logger.log: "Furnace fan is turned on!"
     on_turn_off:
       - logger.log: "Furnace fan is turned off!"
+      - switch.turn_off: call_humid
 
   - platform: gpio
     id: call_humid
@@ -89,25 +89,25 @@ switch:
       - logger.log: "Waiting for furnace fan..."      
       - wait_until:
           condition:
-            switch.is_on: fan_enabled
+            switch.is_on: fan_mode_on
           timeout: 30s
       - if: 
           condition:
-            - switch.is_off: fan_enabled
+            - switch.is_off: fan_mode_on
           then:          
             - logger.log: "Furnace fan timed out."
-            - switch.turn_off: call_humid
             - homeassistant.service:            
                 service: notify.persistent_notification
                 data:
                   message: "Furnace fan timed-out while trying to humidify."
+            - switch.turn_off: call_humid
           else:
             - delay: 60s # Wait for fan motor to spin up
-            - logger.log: "HUMIDIFER STEAM ON"
+            - logger.log: "humidifier STEAM ON"
 
     on_turn_off:
       then:
-        - logger.log: "HUMIDIFER STEAM OFF"
+        - logger.log: "humidifier STEAM OFF"
 
   - platform: template
     id: generate_steam
@@ -123,25 +123,31 @@ switch:
       then:
         - if: 
             condition:
-              # Never allow humidifer to start if RH > 65%
+              # Never allow humidifer to start if RH > 60%
               - lambda: |-
-                  return id(source_humid).state < 65;
+                  return id(source_humid).state < 60;
             then: 
               - homeassistant.service:
                   service: climate.set_fan_mode
                   data:
                     entity_id: climate.main_floor
                     fan_mode: "on"
-              - switch.turn_on: call_humid            
+              - switch.turn_on: call_humid
+            else:
+              - homeassistant.service:            
+                  service: notify.persistent_notification
+                  data:
+                    message: "Humidifer tried to turn on when humidity limits already exceeded."
     turn_off_action:
       - switch.turn_off: call_humid
-      - delay: 60s
-      - logger.log: "Turning off furnace fan."
+      - logger.log: "Waiting 15 mins to turn off furnace fan..."
+      - delay: 15min
       - homeassistant.service:
           service: climate.set_fan_mode
           data:
             entity_id: climate.main_floor
             fan_mode: "auto"
+      - logger.log: "Furnace fan mode set to auto."
 
 button:
   - platform: safe_mode
@@ -157,7 +163,7 @@ binary_sensor:
   - platform: template
     name: "Humidifer Status"
     id: humidifier_status
-    icon: mdi:waves-arrow-up
+    icon: mdi:air-humidifier
     lambda: |-
       if (id(generate_steam).state) {
         return true;
@@ -181,13 +187,36 @@ sensor:
           send_every: 60
           send_first_at: 1
 
+  - platform: mqtt_subscribe
+    name: "Humidity Min Limit"
+    id: humid_min
+    topic: esphome/devices/esp32-humidifier/humidity_level/min
+    qos: 2
+    on_value:
+      - logger.log: "Humidity lower limit setpoint adjusted."
+      - script.execute:
+          id: eval_humid
+          current_humid: !lambda "return x;"
+
+  - platform: mqtt_subscribe
+    name: "Humidity Max Limit"
+    id: humid_max
+    topic: esphome/devices/esp32-humidifier/humidity_level/max
+    qos: 2
+    on_value:
+      - logger.log: "Humidity upper limit setpoint adjusted."      
+      - script.execute:
+          id: eval_humid
+          current_humid: !lambda "return x;"
+
   - platform: homeassistant
     id: source_humid
     entity_id: sensor.esp32_familyroom_env_humidity
-    on_value_range:
-      - above: 65.0
-        then:
-          - switch.turn_off: generate_steam
+    on_value:
+      - logger.log: "Remote sensor humidity changed."   
+      - script.execute:
+          id: eval_humid
+          current_humid: !lambda "return x;"
 
   - platform: bme680
     temperature:
@@ -244,6 +273,7 @@ sensor:
 text_sensor:
   - platform: version
     name: "ESPHome Version"
+    icon: "mdi:chip"
 
   - platform: homeassistant
     id: fan_mode
@@ -253,9 +283,9 @@ text_sensor:
       then:
         - lambda: |-
             if (x == "on") {
-              id(fan_enabled).publish_state(true);
+              id(fan_mode_on).publish_state(true);
             } else {
-              id(fan_enabled).publish_state(false);
+              id(fan_mode_on).publish_state(false);
             }
 
   - platform: template
@@ -285,4 +315,43 @@ text_sensor:
       }
       else {
         return {"unknown"};
-      }          
+      }
+
+script:
+  - id: eval_humid
+    parameters:
+      current_humid: float
+    then:
+      lambda: |-
+        ESP_LOGD("eval_humid", "The value of remote sensor is: %f", current_humid);
+
+        if (int(id(humid_min).state) <= int(current_humid)) {
+          // Humidity low
+          if (bool(id(humidifier_status).state) == false) {
+            // Humidifer is off so turn on
+            id(generate_steam).publish_state(true);
+          }
+        }
+        else if (int(id(humid_min).state) >= int(current_humid)) {
+          // Humidity high
+          if (bool(id(humidifier_status).state) == true) {
+            // Humidifer is on so turn off
+            id(generate_steam).publish_state(false);
+          }
+        }
+        else {
+          // Not implemented
+          /*
+          HomeassistantServiceResponse resp;
+          HomeassistantServiceMap entity_id_kv;
+          ESP_LOGE("custom", "Could not read remote humidity. Humidifer Controller shutting down.");
+
+          resp.service = "notify.persistent_notification";
+          entity_id_kv.key = "message";
+          entity_id_kv.value = "Could not read remote humidity. Humidifer Controller shutting down.";
+          resp.data.push_back(entity_id_kv);
+          id(api_server).send_homeassistant_service_call(resp);
+
+          id(shutdown_controller).turn_on();
+          */
+        }
