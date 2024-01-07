@@ -28,7 +28,7 @@ wifi:
 
   ap:
     ssid: "${name}"
-    password: "E12bcaWpvNMD"
+    password: !secret fallback_ap_pwd
 
 time:
   - platform: sntp
