@@ -225,39 +225,39 @@ sensor:
       force_update: true
       expire_after: 60min
       filters:
-        - median:
-            window_size: 601
+        - exponential_moving_average:
+            alpha: 0.1
             send_every: 300
-            send_first_at: 1      
+            send_first_at: 1   
     pressure:
       name: "Pressure"
       force_update: true
       expire_after: 60min
       filters:
-        - median:
-            window_size: 601
+        - exponential_moving_average:
+            alpha: 0.1
             send_every: 300
-            send_first_at: 1      
+            send_first_at: 1 
     humidity:
       id: "humidity"
       name: "Humidity"
       force_update: true
       expire_after: 60min
       filters:
-        - median:
-            window_size: 601
+        - exponential_moving_average:
+            alpha: 0.1
             send_every: 300
-            send_first_at: 1      
+            send_first_at: 1
     gas_resistance:
       id: "gas_resistance"
       name: "Gas Resistance"
       force_update: true
       expire_after: 60min
       filters:
-        - median:
-            window_size: 601
+        - exponential_moving_average:
+            alpha: 0.1
             send_every: 300
-            send_first_at: 1      
+            send_first_at: 1  
     address: 0x77
     update_interval: 1s
 
