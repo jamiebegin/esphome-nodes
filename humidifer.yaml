@@ -1,0 +1,331 @@
+substitutions:
+  name: esp32-humidifier
+  friendly_name: "Humidifier Control"
+  ip_addr: 192.168.5.111
+  board: featheresp32
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  name_add_mac_suffix: false
+
+esp32:
+  board: ${board}
+  framework:
+    type: arduino
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pwd
+  fast_connect: False
+  reboot_timeout: 15min
+  domain: !secret domain
+  manual_ip:
+    static_ip: ${ip_addr}
+    gateway: !secret gateway
+    subnet: !secret subnet
+    dns1: !secret dns_server
+
+  ap:
+    ssid: "${name}"
+    password: "E12bcaWpvNMD"
+
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: "America/Detroit"
+    servers: !secret ntp_server
+
+mqtt:
+  broker: !secret mqtt_broker
+  topic_prefix: esphome/devices/${name}
+  birth_message:
+    topic: esphome/availability/${name}
+    payload: online
+  will_message:
+    topic: esphome/availability/${name}
+    payload: offline  
+
+# #######################################
+logger:
+
+api:
+
+ota:
+
+# #######################################
+
+###############################
+
+i2c:
+  scan: True
+  id: bus_a
+
+# ######### Switches & Buttons  ##########
+switch:
+  - platform: restart
+    name: "Restart Controller"
+  - platform: shutdown
+    name: "Shutdown Controller"
+
+  - platform: template
+    id: fan_mode_on
+    internal: true
+    optimistic: true
+    on_turn_on:
+      - logger.log: "Furnace fan is turned on!"
+    on_turn_off:
+      - logger.log: "Furnace fan is turned off!"
+      - switch.turn_off: call_humid
+
+  - platform: gpio
+    id: call_humid
+    pin: 26
+    name: "Call Humidity"
+    internal: true
+    on_turn_on:
+      - logger.log: "Waiting for furnace fan..."      
+      - wait_until:
+          condition:
+            switch.is_on: fan_mode_on
+          timeout: 30s
+      - if: 
+          condition:
+            - switch.is_off: fan_mode_on
+          then:          
+            - logger.log: "Furnace fan timed out."
+            - homeassistant.service:            
+                service: notify.persistent_notification
+                data:
+                  message: "Furnace fan timed-out while trying to humidify."
+            - switch.turn_off: call_humid
+          else:
+            - delay: 60s # Wait for fan motor to spin up
+            - logger.log: "humidifier STEAM ON"
+
+    on_turn_off:
+      then:
+        - logger.log: "humidifier STEAM OFF"
+
+  - platform: template
+    id: generate_steam
+    name: "Generate Steam"
+    icon: mdi:waves-arrow-up
+    lambda: |-
+      if (id(call_humid).state) {
+        return true;
+      } else {
+        return false;
+      }    
+    turn_on_action:
+      then:
+        - if: 
+            condition:
+              # Never allow humidifer to start if RH > 60%
+              - lambda: |-
+                  return id(source_humid).state < 60;
+            then: 
+              - homeassistant.service:
+                  service: climate.set_fan_mode
+                  data:
+                    entity_id: climate.main_floor
+                    fan_mode: "on"
+              - switch.turn_on: call_humid
+            else:
+              - homeassistant.service:            
+                  service: notify.persistent_notification
+                  data:
+                    message: "Humidifer tried to turn on when humidity limits already exceeded."
+    turn_off_action:
+      - switch.turn_off: call_humid
+      - logger.log: "Waiting 5 mins to turn off furnace fan..."
+      - delay: 300s
+      - homeassistant.service:
+          service: climate.set_fan_mode
+          data:
+            entity_id: climate.main_floor
+            fan_mode: "auto"
+      - logger.log: "Furnace fan mode set to auto."
+
+button:
+  - platform: safe_mode
+    name: "Safe Mode Boot"
+    entity_category: diagnostic
+
+
+# ######### Sensors ##########
+binary_sensor:
+  - platform: status
+    name: "Controller Status"
+
+  - platform: template
+    name: "Humidifer Status"
+    id: humidifier_status
+    icon: mdi:waves-arrow-up
+    lambda: |-
+      if (id(generate_steam).state) {
+        return true;
+      } else {
+        return false;
+      }
+
+sensor:
+  - platform: uptime
+    name: Uptime
+    expire_after: 30min
+
+  - platform: wifi_signal
+    name: "Wifi Signal"
+    update_interval: 1min
+    force_update: true
+    expire_after: 60min
+    filters:
+      - median:
+          window_size: 241
+          send_every: 60
+          send_first_at: 1
+
+  - platform: mqtt_subscribe
+    name: "Humidity Min Limit"
+    id: humid_min
+    topic: esphome/devices/${name}/humidity_level/min
+    on_value:
+      - script.execute:
+          id: eval_humid
+          current_humid: !lambda "return id(source_humid).state;"
+
+  - platform: mqtt_subscribe
+    name: "Humidity Max Limit"
+    id: humid_max
+    topic: esphome/devices/${name}humidity_level/max
+    on_value:
+      - script.execute:
+          id: eval_humid
+          current_humid: !lambda "return id(source_humid).state;"
+
+  - platform: homeassistant
+    id: source_humid
+    entity_id: sensor.esp32_familyroom_env_humidity
+    on_value:
+      - script.execute:
+          id: eval_humid
+          current_humid: !lambda "return id(source_humid).state;"
+
+  - platform: bme680
+    temperature:
+      name: "Temperature"
+      oversampling: 16x
+      force_update: true
+      expire_after: 60min
+      filters:
+        - median:
+            window_size: 601
+            send_every: 300
+            send_first_at: 1      
+    pressure:
+      name: "Pressure"
+      force_update: true
+      expire_after: 60min
+      filters:
+        - median:
+            window_size: 601
+            send_every: 300
+            send_first_at: 1      
+    humidity:
+      id: "humidity"
+      name: "Humidity"
+      force_update: true
+      expire_after: 60min
+      filters:
+        - median:
+            window_size: 601
+            send_every: 300
+            send_first_at: 1      
+    gas_resistance:
+      id: "gas_resistance"
+      name: "Gas Resistance"
+      force_update: true
+      expire_after: 60min
+      filters:
+        - median:
+            window_size: 601
+            send_every: 300
+            send_first_at: 1      
+    address: 0x77
+    update_interval: 1s
+
+  - platform: template
+    name: "BME680 Indoor Air Quality"
+    id: iaq
+    icon: "mdi:gauge"
+    expire_after: 60min
+    # caulculation: comp_gas = log(R_gas[ohm]) + 0.04 log(Ohm)/%rh * hum[%rh]
+    lambda: |-
+      return log(id(gas_resistance).state) + 0.04 *  id(humidity).state;
+
+text_sensor:
+  - platform: version
+    name: "ESPHome Version"
+
+  - platform: homeassistant
+    id: fan_mode
+    entity_id: climate.main_floor
+    attribute: fan_mode
+    on_value:
+      then:
+        - lambda: |-
+            if (x == "on") {
+              id(fan_mode_on).publish_state(true);
+            } else {
+              id(fan_mode_on).publish_state(false);
+            }
+
+  - platform: template
+    name: "IAQ Classification"
+    icon: "mdi:checkbox-marked-circle-outline"
+    lambda: |-
+      if (int(id(iaq).state) <= 50) {
+        return {"Excellent"};
+      }
+      else if (int(id(iaq).state) <= 100) {
+        return {"Good"};
+      }
+      else if (int(id(iaq).state) <= 150) {
+        return {"Lightly polluted"};
+      }
+      else if (int(id(iaq).state) <= 200) {
+        return {"Moderately polluted"};
+      }
+      else if (int(id(iaq).state) <= 250) {
+        return {"Heavily polluted"};
+      }
+      else if (int(id(iaq).state) <= 350) {
+        return {"Severely polluted"};
+      }
+      else if (int(id(iaq).state) <= 500) {
+        return {"Extremely polluted"};
+      }
+      else {
+        return {"unknown"};
+      }
+
+script:
+  - id: eval_humid
+    parameters:
+      current_humid: float
+    then:
+      lambda: |-
+        if (int(id(humid_min).state) <= current_humid) {
+          // Humidity low
+          if (bool(id(humidifier_status).state) == false) {
+            // Humidifer is off so turn on
+            id(generate_steam).publish_state(true);
+          }
+        }
+        else if (int(id(humid_min).state) >= current_humid) {
+          // Humidity high
+          if (bool(id(humidifier_status).state) == true) {
+            // Humidifer is on so turn off
+            id(generate_steam).publish_state(false);
+          }
+        }
