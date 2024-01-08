@@ -38,7 +38,7 @@ wifi:
         id: humidifier_status
         state: "off"
     - delay: 15s
-    - lambda: !lambda id(household_humidity).publish_state(id(humid_familyroom).state);
+    - lambda: !lambda id(household_humidity_kalman).publish_state(id(humid_familyroom).state);
 
 time:
   - platform: sntp
@@ -89,6 +89,13 @@ switch:
       - logger.log: "Furnace fan is turned off!"
       - switch.turn_off: call_humid
 
+  - platform: template
+    id: require_heat
+    name: "Require Furnace Heat Mode"
+    optimistic: true
+    icon: "mdi:heat-wave"
+    restore_mode: "RESTORE_DEFAULT_ON"
+
   - platform: gpio
     id: call_humid
     pin: 26
@@ -120,7 +127,7 @@ button:
           then:
             - text_sensor.template.publish:
                 id: humidifier_status
-                state: "Starting"
+                state: "starting"
             - logger.log: "Setting furnace fan mode to on."              
             - homeassistant.service:
                 service: climate.set_fan_mode
@@ -137,7 +144,7 @@ button:
                 then:
                   - text_sensor.template.publish:
                       id: humidifier_status
-                      state: "Fan Error"
+                      state: "fan_error"
                   - logger.log: "Furnace fan timed out."
                   - homeassistant.service:            
                       service: notify.persistent_notification
@@ -157,7 +164,7 @@ button:
                 then:
                   - text_sensor.template.publish:
                       id: humidifier_status
-                      state: "Stopping"
+                      state: "stopping"
                   - switch.turn_off: call_humid
                   - logger.log: "Waiting 10 mins to turn off furnace fan..."
                   - delay: 10min
@@ -176,6 +183,10 @@ button:
 binary_sensor:
   - platform: status
     name: "Controller Status"
+
+  - platform: template
+    id: heat_mode_satisfied
+    internal: true
 
 sensor:
   - platform: uptime
@@ -232,8 +243,11 @@ sensor:
   # combine humidity readings throughout the house
   - platform: kalman_combinator
     name: "Household Humidity"
-    id: household_humidity
+    id: household_humidity_kalman
     device_class: "humidity"
+    state_class: "measurement"
+    unit_of_measurement: "%"
+    icon: "mdi:water-percent"
     process_std_dev: 0.060
     sources:
       - source: humid_familyroom
@@ -245,7 +259,7 @@ sensor:
       - logger.log: "Household humidity changed"
       - logger.log:
           format: "Household humidity changed to %.1f."
-          args: [ 'id(household_humidity).state' ] 
+          args: [ 'id(household_humidity_kalman).state' ] 
       - script.execute:
           id: eval_humid
           current_humid: !lambda "return float(x);"
@@ -329,6 +343,19 @@ text_sensor:
               id(fan_mode_on).publish_state(false);
             }
 
+  - platform: homeassistant
+    id: heat_mode
+    entity_id: climate.main_floor
+    attribute: hvac_modes
+    on_value:
+      then:
+        - lambda: |-
+            if ( (x == "heat" || x == "heat_cool") || (id(require_heat).state == false) ){
+              id(heat_mode_satisfied).publish_state(true);
+            } else {
+              id(heat_mode_satisfied).publish_state(false);
+            }
+
   - platform: template
     name: "IAQ Classification"
     icon: "mdi:checkbox-marked-circle-outline"
@@ -366,17 +393,19 @@ script:
       - if:
           condition:
             and:
-              - lambda: !lambda "return int(current_humid) < int(id(humid_min).state);"
+              - binary_sensor.is_on: heat_mode_satisfied
+              - lambda: !lambda "return int(current_humid) <= int(id(humid_min).state);"
               - text_sensor.state:
                   id: humidifier_status
-                  state: 'off'               
+                  state: 'off'
           then:
             - logger.log: "Need to turn ON the steam!"
             - button.press: toggle_steam 
+
       - if:
           condition:
             and:
-              - lambda: !lambda "return int(current_humid) > int(id(humid_max).state);"
+              - lambda: !lambda "return int(current_humid) >= int(id(humid_max).state);"
               - text_sensor.state:
                   id: humidifier_status
                   state: 'on'
