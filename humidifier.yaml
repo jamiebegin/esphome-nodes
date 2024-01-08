@@ -37,7 +37,7 @@ wifi:
     - text_sensor.template.publish:
         id: humidifier_status
         state: "off"
-    - delay: 5s
+    - delay: 15s
     - lambda: !lambda id(household_humidity).publish_state(id(humid_familyroom).state);
 
 time:
@@ -234,10 +234,10 @@ sensor:
     name: "Household Humidity"
     id: household_humidity
     device_class: "humidity"
-    process_std_dev: 0.020
+    process_std_dev: 0.060
     sources:
       - source: humid_familyroom
-        error: 0.850
+        error: 1.0
       #- source: temperature_sensor_2
       #  error: !lambda |-
       #    return 0.5 + std::abs(x - 25) * 0.023
