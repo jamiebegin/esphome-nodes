@@ -120,7 +120,7 @@ button:
           then:
             - text_sensor.template.publish:
                 id: humidifier_status
-                state: "starting"
+                state: "Starting"
             - logger.log: "Setting furnace fan mode to on."              
             - homeassistant.service:
                 service: climate.set_fan_mode
@@ -137,7 +137,7 @@ button:
                 then:
                   - text_sensor.template.publish:
                       id: humidifier_status
-                      state: "fan error"
+                      state: "Fan Error"
                   - logger.log: "Furnace fan timed out."
                   - homeassistant.service:            
                       service: notify.persistent_notification
@@ -157,7 +157,7 @@ button:
                 then:
                   - text_sensor.template.publish:
                       id: humidifier_status
-                      state: "stopping"
+                      state: "Stopping"
                   - switch.turn_off: call_humid
                   - logger.log: "Waiting 10 mins to turn off furnace fan..."
                   - delay: 10min
