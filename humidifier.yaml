@@ -30,6 +30,13 @@ wifi:
     ssid: "${name}"
     password: !secret fallback_ap_pwd
 
+  # Need to set the combined household humidity sensors to the value
+  # of the family room at boot because it takes a while for the combined sensor
+  # to settle in and emit values
+  on_connect:
+    - delay: 5s
+    - lambda: !lambda id(household_humidity).publish_state(id(humid_familyroom).state);
+
 time:
   - platform: sntp
     id: sntp_time
@@ -50,7 +57,6 @@ mqtt:
 logger:
 
 api:
-  id: api_server  
 
 ota:
 
@@ -86,68 +92,52 @@ switch:
     name: "Call Humidity"
     internal: true
     on_turn_on:
-      - logger.log: "Waiting for furnace fan..."      
-      - wait_until:
-          condition:
-            switch.is_on: fan_mode_on
-          timeout: 30s
-      - if: 
-          condition:
-            - switch.is_off: fan_mode_on
-          then:          
-            - logger.log: "Furnace fan timed out."
-            - homeassistant.service:            
-                service: notify.persistent_notification
-                data:
-                  message: "Furnace fan timed-out while trying to humidify."
-            - switch.turn_off: call_humid
-          else:
-            - delay: 60s # Wait for fan motor to spin up
-            - logger.log: "humidifier STEAM ON"
-
+      - logger.log: "HUMIDIFIER STEAM ON"      
     on_turn_off:
-      then:
-        - logger.log: "humidifier STEAM OFF"
+      - logger.log: "HUMIDIFIER STEAM OFF"
 
   - platform: template
     id: generate_steam
     name: "Generate Steam"
     icon: mdi:waves-arrow-up
-    lambda: |-
-      if (id(call_humid).state) {
-        return true;
-      } else {
-        return false;
-      }    
-    turn_on_action:
+    optimistic: true
+    on_turn_on:
       then:
+        - logger.log: "Setting furnace fan mode to on."              
+        - homeassistant.service:
+            service: climate.set_fan_mode
+            data:
+              entity_id: climate.main_floor
+              fan_mode: "on"
+        - wait_until:
+            condition:
+              switch.is_on: fan_mode_on
+            timeout: 30s
         - if: 
             condition:
-              # Never allow humidifer to start if RH > 60%
-              - lambda: |-
-                  return id(source_humid).state < 60;
-            then: 
-              - homeassistant.service:
-                  service: climate.set_fan_mode
-                  data:
-                    entity_id: climate.main_floor
-                    fan_mode: "on"
-              - switch.turn_on: call_humid
-            else:
+              - switch.is_off: fan_mode_on
+            then:          
+              - logger.log: "Furnace fan timed out."
               - homeassistant.service:            
                   service: notify.persistent_notification
                   data:
-                    message: "Humidifer tried to turn on when humidity limits already exceeded."
-    turn_off_action:
-      - switch.turn_off: call_humid
-      - logger.log: "Waiting 15 mins to turn off furnace fan..."
-      - delay: 15min
-      - homeassistant.service:
-          service: climate.set_fan_mode
-          data:
-            entity_id: climate.main_floor
-            fan_mode: "auto"
-      - logger.log: "Furnace fan mode set to auto."
+                    message: "Furnace fan timed-out while trying to humidify."
+              - switch.turn_off: call_humid
+            else:
+              - logger.log: "Fan on. Waiting 60 secs to spin up."
+              - delay: 60s
+              - switch.turn_on: call_humid
+    on_turn_off:
+      then:
+        - switch.turn_off: call_humid
+        - logger.log: "Waiting 15 mins to turn off furnace fan..."
+        - delay: 15min
+        - homeassistant.service:
+            service: climate.set_fan_mode
+            data:
+              entity_id: climate.main_floor
+              fan_mode: "auto"
+        - logger.log: "Furnace fan mode set to auto."
 
 button:
   - platform: safe_mode
@@ -164,12 +154,7 @@ binary_sensor:
     name: "Humidifer Status"
     id: humidifier_status
     icon: mdi:air-humidifier
-    lambda: |-
-      if (id(generate_steam).state) {
-        return true;
-      } else {
-        return false;
-      }
+    lambda: !lambda "return id(call_humid).state;"
 
 sensor:
   - platform: uptime
@@ -190,33 +175,59 @@ sensor:
   - platform: mqtt_subscribe
     name: "Humidity Min Limit"
     id: humid_min
-    topic: esphome/devices/esp32-humidifier/humidity_level/min
+    topic: esphome/devices/${name}/humidity_level/min
     qos: 2
     on_value:
       - logger.log: "Humidity lower limit setpoint adjusted."
       - script.execute:
           id: eval_humid
-          current_humid: !lambda "return x;"
+          current_humid: !lambda "return float(id(humid_familyroom).state);"
 
   - platform: mqtt_subscribe
     name: "Humidity Max Limit"
     id: humid_max
-    topic: esphome/devices/esp32-humidifier/humidity_level/max
+    topic: esphome/devices/${name}/humidity_level/max
     qos: 2
     on_value:
       - logger.log: "Humidity upper limit setpoint adjusted."      
       - script.execute:
           id: eval_humid
-          current_humid: !lambda "return x;"
+          current_humid: !lambda "return float(id(humid_familyroom).state);"
 
   - platform: homeassistant
-    id: source_humid
+    id: humid_familyroom
     entity_id: sensor.esp32_familyroom_env_humidity
     on_value:
-      - logger.log: "Remote sensor humidity changed."   
+      - logger.log:
+          format: "Family room humidity changed to %.1f."
+          args: [ 'id(humid_familyroom).state' ]     
+    filters:
+      - filter_out: nan
+      - round: 0
+
+  # combine humidity readings throughout the house
+  - platform: kalman_combinator
+    name: "Household Humidity"
+    id: household_humidity
+    device_class: "humidity"
+    process_std_dev: 0.020
+    sources:
+      - source: humid_familyroom
+        error: 0.850
+      #- source: temperature_sensor_2
+      #  error: !lambda |-
+      #    return 0.5 + std::abs(x - 25) * 0.023
+    on_value:
+      - logger.log: "Household humidity changed"
+      - logger.log:
+          format: "Household humidity changed to %.1f."
+          args: [ 'id(household_humidity).state' ] 
       - script.execute:
           id: eval_humid
-          current_humid: !lambda "return x;"
+          current_humid: !lambda "return float(x);"
+    filters:
+      - filter_out: nan
+      - round: 0
 
   - platform: bme680
     temperature:
@@ -322,23 +333,23 @@ script:
     parameters:
       current_humid: float
     then:
-      lambda: |-
-        ESP_LOGD("eval_humid", "The value of remote sensor is: %f", current_humid);
-
-        if ( isnan(current_humid) ) {
-          ESP_LOGE("custom", "Could not read remote humidity!");
-        }
-        else if ( int(current_humid) <= int(id(humid_min).state) ) {
-          // Humidity low
-          if (bool(id(humidifier_status).state) == false) {
-            // Humidifer is off so turn on
-            id(generate_steam).publish_state(true);
-          }
-        }
-        else if ( int(current_humid) >= int(id(humid_max).state) ) {
-          // Humidity high
-          if (bool(id(humidifier_status).state) == true) {
-            // Humidifer is on so turn off
-            id(generate_steam).publish_state(false);
-          }
-        }
+      - if:
+          condition:
+            and:
+              - lambda: !lambda "return int(current_humid) < int(id(humid_min).state);"
+              - switch.is_off: generate_steam
+          then:
+            - logger.log: "Need to turn ON the steam!"
+            - switch.template.publish:
+                id: generate_steam
+                state: ON
+      - if:
+          condition:
+            and:
+              - lambda: !lambda "return int(current_humid) > int(id(humid_max).state);"
+              - switch.is_on: generate_steam
+          then:
+            - logger.log: "Need to turn OFF the steam!"            
+            - switch.template.publish:
+                id: generate_steam
+                state: OFF
