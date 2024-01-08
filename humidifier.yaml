@@ -34,6 +34,9 @@ wifi:
   # of the family room at boot because it takes a while for the combined sensor
   # to settle in and emit values
   on_connect:
+    - text_sensor.template.publish:
+        id: humidifier_status
+        state: "off"
     - delay: 5s
     - lambda: !lambda id(household_humidity).publish_state(id(humid_familyroom).state);
 
@@ -92,69 +95,87 @@ switch:
     name: "Call Humidity"
     internal: true
     on_turn_on:
+      - text_sensor.template.publish:
+          id: humidifier_status
+          state: "on"
       - logger.log: "HUMIDIFIER STEAM ON"      
     on_turn_off:
       - logger.log: "HUMIDIFIER STEAM OFF"
-
-  - platform: template
-    id: generate_steam
-    name: "Generate Steam"
-    icon: mdi:waves-arrow-up
-    optimistic: true
-    on_turn_on:
-      then:
-        - logger.log: "Setting furnace fan mode to on."              
-        - homeassistant.service:
-            service: climate.set_fan_mode
-            data:
-              entity_id: climate.main_floor
-              fan_mode: "on"
-        - wait_until:
-            condition:
-              switch.is_on: fan_mode_on
-            timeout: 30s
-        - if: 
-            condition:
-              - switch.is_off: fan_mode_on
-            then:          
-              - logger.log: "Furnace fan timed out."
-              - homeassistant.service:            
-                  service: notify.persistent_notification
-                  data:
-                    message: "Furnace fan timed-out while trying to humidify."
-              - switch.turn_off: call_humid
-            else:
-              - logger.log: "Fan on. Waiting 60 secs to spin up."
-              - delay: 60s
-              - switch.turn_on: call_humid
-    on_turn_off:
-      then:
-        - switch.turn_off: call_humid
-        - logger.log: "Waiting 15 mins to turn off furnace fan..."
-        - delay: 15min
-        - homeassistant.service:
-            service: climate.set_fan_mode
-            data:
-              entity_id: climate.main_floor
-              fan_mode: "auto"
-        - logger.log: "Furnace fan mode set to auto."
 
 button:
   - platform: safe_mode
     name: "Safe Mode Boot"
     entity_category: diagnostic
 
+  - platform: template
+    id: toggle_steam
+    name: "Toggle Steam"
+    icon: mdi:waves-arrow-up
+    on_press:
+      - if:
+          condition:
+            text_sensor.state:
+              id: humidifier_status
+              state: 'off'     
+          then:
+            - text_sensor.template.publish:
+                id: humidifier_status
+                state: "starting"
+            - logger.log: "Setting furnace fan mode to on."              
+            - homeassistant.service:
+                service: climate.set_fan_mode
+                data:
+                  entity_id: climate.main_floor
+                  fan_mode: "on"
+            - wait_until:
+                condition:
+                  switch.is_on: fan_mode_on
+                timeout: 30s
+            - if: 
+                condition:
+                  - switch.is_off: fan_mode_on
+                then:
+                  - text_sensor.template.publish:
+                      id: humidifier_status
+                      state: "fan error"
+                  - logger.log: "Furnace fan timed out."
+                  - homeassistant.service:            
+                      service: notify.persistent_notification
+                      data:
+                        message: "Furnace fan timed-out while trying to humidify."
+                  - switch.turn_off: call_humid
+                else:
+                  - logger.log: "Fan on. Waiting 60 secs to spin up."
+                  - delay: 60s
+                  - switch.turn_on: call_humid
+          else:
+            - if:
+                condition:
+                  text_sensor.state:
+                    id: humidifier_status
+                    state: 'on'     
+                then:
+                  - text_sensor.template.publish:
+                      id: humidifier_status
+                      state: "stopping"
+                  - switch.turn_off: call_humid
+                  - logger.log: "Waiting 10 mins to turn off furnace fan..."
+                  - delay: 10min
+                  - homeassistant.service:
+                      service: climate.set_fan_mode
+                      data:
+                        entity_id: climate.main_floor
+                        fan_mode: "auto"
+                  - logger.log: "Furnace fan mode set to auto."
+                  - text_sensor.template.publish:
+                      id: humidifier_status
+                      state: "off"
+
 
 # ######### Sensors ##########
 binary_sensor:
   - platform: status
     name: "Controller Status"
-
-  - platform: template
-    name: "Humidifer Status"
-    id: humidifier_status
-    icon: mdi:air-humidifier
-    lambda: !lambda "return id(call_humid).state;"
 
 sensor:
   - platform: uptime
@@ -197,6 +218,8 @@ sensor:
   - platform: homeassistant
     id: humid_familyroom
     entity_id: sensor.esp32_familyroom_env_humidity
+    unit_of_measurement: "%"
+    icon: "mdi:water-percent"    
     on_value:
       - logger.log:
           format: "Family room humidity changed to %.1f."
@@ -204,6 +227,7 @@ sensor:
     filters:
       - filter_out: nan
       - round: 0
+      - lambda: !lambda "return int(x);"
 
   # combine humidity readings throughout the house
   - platform: kalman_combinator
@@ -228,6 +252,7 @@ sensor:
     filters:
       - filter_out: nan
       - round: 0
+      - lambda: !lambda "return int(x);"
 
   - platform: bme680
     temperature:
@@ -286,6 +311,11 @@ text_sensor:
     name: "ESPHome Version"
     icon: "mdi:chip"
 
+  - platform: template
+    name: "Humidifer Status"
+    id: humidifier_status
+    icon: "mdi:air-humidifier"
+
   - platform: homeassistant
     id: fan_mode
     entity_id: climate.main_floor
@@ -337,19 +367,19 @@ script:
           condition:
             and:
               - lambda: !lambda "return int(current_humid) < int(id(humid_min).state);"
-              - switch.is_off: generate_steam
+              - text_sensor.state:
+                  id: humidifier_status
+                  state: 'off'               
           then:
             - logger.log: "Need to turn ON the steam!"
-            - switch.template.publish:
-                id: generate_steam
-                state: ON
+            - button.press: toggle_steam 
       - if:
           condition:
             and:
               - lambda: !lambda "return int(current_humid) > int(id(humid_max).state);"
-              - switch.is_on: generate_steam
+              - text_sensor.state:
+                  id: humidifier_status
+                  state: 'on'
           then:
-            - logger.log: "Need to turn OFF the steam!"            
-            - switch.template.publish:
-                id: generate_steam
-                state: OFF
+            - logger.log: "Need to turn OFF the steam!" 
+            - button.press: toggle_steam
