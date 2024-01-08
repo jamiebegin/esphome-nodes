@@ -43,7 +43,7 @@ wifi:
 time:
   - platform: sntp
     id: sntp_time
-    timezone: "America/Detroit"
+    timezone: !secret timezone
     servers: !secret ntp_server
 
 mqtt:
