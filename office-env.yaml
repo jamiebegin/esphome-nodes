@@ -1,7 +1,7 @@
 substitutions:
   name: esp32-office-env
   friendly_name: "Office Env Sensors"
-  ip_addr: 192.168.5.138
+  ip_addr: 192.168.5.113
   board: nodemcuv2
   platform: ESP8266
 
@@ -94,7 +94,7 @@ sensor:
     name: "Uptime"
 
   - platform: homeassistant
-    id: pm25_24hr
+    id: office_pm25_24hr
     internal: true
     entity_id: sensor.office_pm25_24_hrs
 
@@ -205,6 +205,7 @@ sensor:
       id: "pmc_0_5"
       expire_after: 8h
       force_update: true
+      state_class: "measurement"
       filters:
         - median:
             window_size: 601
@@ -216,6 +217,7 @@ sensor:
       id: "pmc_1_0"
       expire_after: 8h
       force_update: true
+      state_class: "measurement"
       filters:
         - median:
             window_size: 601
@@ -227,6 +229,7 @@ sensor:
       id: "pmc_2_5"
       expire_after: 8h
       force_update: true
+      state_class: "measurement"
       filters:
         - median:
             window_size: 601
@@ -238,6 +241,7 @@ sensor:
       id: "pmc_4_0"
       expire_after: 8h
       force_update: true
+      state_class: "measurement"
       filters:
         - median:
             window_size: 601
@@ -249,6 +253,7 @@ sensor:
       id: "pmc_10_0"
       expire_after: 8h
       force_update: true
+      state_class: "measurement"
       filters:
         - median:
             window_size: 601
@@ -276,10 +281,10 @@ text_sensor:
     name: "PM25 Limits"
     icon: "mdi:virus"
     lambda: |-
-      if (int(id(pm_2_5).state) < 5 && int(id(pm25_24hr).state) < 15) {
+      if (int(id(pm_2_5).state) < 5 && int(id(office_pm25_24hr).state) < 15) {
         return {"Ok"};
       }
-      else if (int(id(pm_2_5).state) >= 5 || int(id(pm25_24hr).state) >= 15) {
+      else if (int(id(pm_2_5).state) >= 5 || int(id(office_pm25_24hr).state) >= 15) {
         return {"Warning!"};
       }
       else {
