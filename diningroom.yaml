@@ -1,0 +1,127 @@
+substitutions:
+  name: esp-dining-room-env
+  friendly_name: "Dining Room Env"
+  ip_addr: 192.168.5.112
+  board: nodemcuv2
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  name_add_mac_suffix: false
+  board: ${board}
+  platform: ESP8266
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pwd
+  fast_connect: False
+  reboot_timeout: 15min
+  domain: !secret domain
+  manual_ip:
+    static_ip: ${ip_addr}
+    gateway: !secret gateway
+    subnet: !secret subnet
+    dns1: !secret dns_server
+
+  ap:
+    ssid: "${name}"
+    password: !secret fallback_ap_pwd
+
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: !secret timezone
+    servers: !secret ntp_server
+
+mqtt:
+  broker: !secret mqtt_broker
+  topic_prefix: esphome/devices/${name}
+  birth_message:
+    topic: esphome/availability/${name}
+    payload: online
+  will_message:
+    topic: esphome/availability/${name}
+    payload: offline  
+
+# #######################################
+logger:
+
+api:
+
+ota:
+
+# #######################################
+i2c:
+  scan: True
+  id: bus_a
+
+switch:
+  - platform: restart
+    name: "Restart"
+  - platform: shutdown
+    name: "Shutdown"
+
+binary_sensor:
+  - platform: status
+    name: "Status"
+
+button:
+  - platform: safe_mode
+    name: "Safe Mode Boot"
+    entity_category: diagnostic
+
+text_sensor:
+  - platform: version
+    name: "ESPHome Version"
+    icon: "mdi:chip"
+
+sensor:
+  - platform: uptime
+    name: Uptime
+    expire_after: 30min
+
+  - platform: wifi_signal
+    name: "Wifi Signal"
+    update_interval: 1min
+    force_update: true
+    expire_after: 60min
+    filters:
+      - median:
+          window_size: 241
+          send_every: 60
+          send_first_at: 1
+
+  - platform: bme280
+    temperature:
+      name: "Temperature"
+      id: temp
+      oversampling: 16x  
+      force_update: true
+      expire_after: 60min
+      filters:
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 300
+            send_first_at: 1         
+    pressure:
+      name: "Pressure"
+      oversampling: 16x  
+      force_update: true
+      expire_after: 60min
+      filters:
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 300
+            send_first_at: 1     
+    humidity:
+      name: "Humidity"
+      oversampling: 16x      
+      force_update: true
+      expire_after: 60min
+      filters:
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 300
+            send_first_at: 1        
+    address: 0x77
+    update_interval: 1s

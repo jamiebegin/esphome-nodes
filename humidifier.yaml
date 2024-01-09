@@ -38,7 +38,7 @@ wifi:
         id: humidifier_status
         state: "off"
     - delay: 15s
-    - lambda: !lambda id(household_humidity_kalman).publish_state(id(humid_familyroom).state);
+    - lambda: !lambda id(household_humidity_kalman).publish_state(id(humid_diningroom).state);
 
 time:
   - platform: sntp
@@ -96,6 +96,17 @@ switch:
     icon: "mdi:heat-wave"
     restore_mode: "RESTORE_DEFAULT_ON"
 
+  - platform: template
+    id: pause_humid
+    icon: "mdi:pause-box"
+    name: "Pause Humidifer"
+    restore_mode: "RESTORE_DEFAULT_OFF"   
+    optimistic: true
+    turn_on_action:
+      - logger.log: "Humidifer paused"
+    turn_off_action:
+      - logger.log: "Humidifer unpaused"
+
   - platform: gpio
     id: call_humid
     pin: 26
@@ -125,36 +136,41 @@ button:
               id: humidifier_status
               state: 'off'     
           then:
-            - text_sensor.template.publish:
-                id: humidifier_status
-                state: "starting"
-            - logger.log: "Setting furnace fan mode to on."              
-            - homeassistant.service:
-                service: climate.set_fan_mode
-                data:
-                  entity_id: climate.main_floor
-                  fan_mode: "on"
-            - wait_until:
+            - if:
                 condition:
-                  switch.is_on: fan_mode_on
-                timeout: 30s
-            - if: 
-                condition:
-                  - switch.is_off: fan_mode_on
+                  not:
+                    - switch.is_on: pause_humid
                 then:
                   - text_sensor.template.publish:
                       id: humidifier_status
-                      state: "fan_error"
-                  - logger.log: "Furnace fan timed out."
-                  - homeassistant.service:            
-                      service: notify.persistent_notification
+                      state: "starting"
+                  - logger.log: "Setting furnace fan mode to on."              
+                  - homeassistant.service:
+                      service: climate.set_fan_mode
                       data:
-                        message: "Furnace fan timed-out while trying to humidify."
-                  - switch.turn_off: call_humid
-                else:
-                  - logger.log: "Fan on. Waiting 60 secs to spin up."
-                  - delay: 60s
-                  - switch.turn_on: call_humid
+                        entity_id: climate.main_floor
+                        fan_mode: "on"
+                  - wait_until:
+                      condition:
+                        switch.is_on: fan_mode_on
+                      timeout: 60s
+                  - if: 
+                      condition:
+                        - switch.is_off: fan_mode_on
+                      then:
+                        - text_sensor.template.publish:
+                            id: humidifier_status
+                            state: "fan_error"
+                        - logger.log: "Furnace fan timed out."
+                        - homeassistant.service:            
+                            service: notify.persistent_notification
+                            data:
+                              message: "Furnace fan timed-out while trying to humidify."
+                        - switch.turn_off: call_humid
+                      else:
+                        - logger.log: "Fan on. Waiting 60 secs to spin up."
+                        - delay: 60s
+                        - switch.turn_on: call_humid
           else:
             - if:
                 condition:
@@ -240,6 +256,20 @@ sensor:
       - round: 0
       - lambda: !lambda "return int(x);"
 
+  - platform: homeassistant
+    id: humid_diningroom
+    entity_id: sensor.esp_dining_room_env_humidity
+    unit_of_measurement: "%"
+    icon: "mdi:water-percent"    
+    on_value:
+      - logger.log:
+          format: "Dining room humidity changed to %.1f."
+          args: [ 'id(humid_diningroom).state' ]     
+    filters:
+      - filter_out: nan
+      - round: 0
+      - lambda: !lambda "return int(x);"
+
   # combine humidity readings throughout the house
   - platform: kalman_combinator
     name: "Household Humidity"
@@ -250,7 +280,7 @@ sensor:
     icon: "mdi:water-percent"
     process_std_dev: 0.060
     sources:
-      - source: humid_familyroom
+      - source: humid_diningroom
         error: 1.0
       #- source: temperature_sensor_2
       #  error: !lambda |-
@@ -346,7 +376,6 @@ text_sensor:
   - platform: homeassistant
     id: heat_mode
     entity_id: climate.main_floor
-    attribute: hvac_modes
     on_value:
       then:
         - lambda: |-
