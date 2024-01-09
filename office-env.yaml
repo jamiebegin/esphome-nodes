@@ -1,7 +1,7 @@
 substitutions:
   name: esp32-office-env
   friendly_name: "Office Env Sensors"
-  ip_addr: 192.168.5.138
+  ip_addr: 192.168.5.113
   board: nodemcuv2
   platform: ESP8266
 
