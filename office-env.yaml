@@ -46,6 +46,24 @@ mqtt:
 
 # #######################################
 logger:
+  # ...
+  on_message:
+    - level: ERROR
+      then:
+        - mqtt.publish:
+            retain: false
+            qos: 1
+            topic: esphome/device_logs/${name}/error
+            payload: !lambda |-
+              return "Triggered on_message with level " + to_string(level) + ", tag " + tag + " and message " + message;
+    - level: WARN
+      then:
+        - mqtt.publish:
+            retain: false
+            qos: 1          
+            topic: esphome/device_logs/${name}/warning
+            payload: !lambda |-
+              return "Triggered on_message with level " + to_string(level) + ", tag " + tag + " and message " + message;
 
 api:
   id: api_server  
