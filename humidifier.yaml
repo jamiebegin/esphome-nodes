@@ -280,6 +280,8 @@ sensor:
     icon: "mdi:water-percent"
     process_std_dev: 0.060
     sources:
+      - source: humid_familyroom
+        error: 1.0
       - source: humid_diningroom
         error: 1.0
       #- source: temperature_sensor_2
