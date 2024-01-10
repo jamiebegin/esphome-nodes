@@ -274,7 +274,7 @@ sensor:
           r_val: !lambda "return float(id(r_factor).state);" 
       - script.execute:
           id: eval_humid
-          current_humid: !lambda "return float(id(humid_familyroom).state);"
+          current_humid: !lambda "return float(id(household_humidity_kalman).state);"
 
   - platform: mqtt_subscribe
     name: "Humidity Setpoint"
@@ -290,7 +290,7 @@ sensor:
           r_val: !lambda "return float(id(r_factor).state);" 
       - script.execute:
           id: eval_humid
-          current_humid: !lambda "return float(id(humid_familyroom).state);"
+          current_humid: !lambda "return float(id(household_humidity_kalman).state);"
 
   - platform: template
     id: humid_setpoint_adjusted
@@ -535,7 +535,7 @@ script:
             and:
               - binary_sensor.is_on: heat_mode_satisfied
               - lambda: |-
-                  if( int(current_humid) <= id(humid_setpoint_adjusted).state - id(humid_hysteresis).state ) {
+                  if( int(current_humid) <= id(humid_setpoint_adjusted).state - (id(humid_hysteresis).state / 2) ) {
                     return true;
                   } else {
                     return false;
@@ -550,7 +550,7 @@ script:
           condition:
             and:
               - lambda: |-
-                  if( int(current_humid) >= id(humid_setpoint_adjusted).state + id(humid_hysteresis).state ) {
+                  if( int(current_humid) >= id(humid_setpoint_adjusted).state + (id(humid_hysteresis).state / 2) ) {
                     return true;
                   } else {
                     return false;
