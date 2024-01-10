@@ -8,6 +8,8 @@ esphome:
   name: ${name}
   friendly_name: ${friendly_name}
   name_add_mac_suffix: false
+  includes:
+    - dewpoint.h
 
 esp32:
   board: ${board}
@@ -58,6 +60,23 @@ mqtt:
 
 # #######################################
 logger:
+  on_message:
+    - level: ERROR
+      then:
+        - mqtt.publish:
+            retain: false
+            qos: 1
+            topic: esphome/device_logs/${name}/error
+            payload: !lambda |-
+              return "Triggered on_message with level " + to_string(level) + ", tag " + tag + " and message " + message;
+    - level: WARN
+      then:
+        - mqtt.publish:
+            retain: false
+            qos: 1          
+            topic: esphome/device_logs/${name}/warning
+            payload: !lambda |-
+              return "Triggered on_message with level " + to_string(level) + ", tag " + tag + " and message " + message;
 
 api:
 
@@ -95,6 +114,27 @@ switch:
     optimistic: true
     icon: "mdi:heat-wave"
     restore_mode: "RESTORE_DEFAULT_ON"
+
+  - platform: template
+    id: avoid_condensation
+    name: "Avoid Window Condensation"
+    optimistic: true
+    icon: "mdi:snowflake-melt"
+    restore_mode: "RESTORE_DEFAULT_OFF"
+    on_turn_on:
+      - logger.log: "Avoid Window Condensation ON"
+      - script.execute:
+          id: update_max_throttled_humid
+          indoor_temp_c: !lambda "return float(id(indoor_temp_c).state);"
+          outdoor_temp_c: !lambda "return float(id(outdoor_temp_c).state);"
+          r_val: !lambda "return float(id(r_factor).state);"       
+    on_turn_off:
+      - logger.log: "Avoid Window Condensation OFF"
+      - script.execute:
+          id: update_max_throttled_humid
+          indoor_temp_c: !lambda "return float(id(indoor_temp_c).state);"
+          outdoor_temp_c: !lambda "return float(id(outdoor_temp_c).state);"
+          r_val: !lambda "return float(id(r_factor).state);"
 
   - platform: template
     id: pause_humid
@@ -221,27 +261,90 @@ sensor:
           send_first_at: 1
 
   - platform: mqtt_subscribe
-    name: "Humidity Min Limit"
-    id: humid_min
-    topic: esphome/devices/${name}/humidity_level/min
+    name: "Humidity Hysteresis"
+    id: humid_hysteresis
+    topic: esphome/devices/${name}/humidity/hysteresis
     qos: 2
     on_value:
-      - logger.log: "Humidity lower limit setpoint adjusted."
+      - logger.log: "Humidity hysteresis adjusted."
+      - script.execute:
+          id: update_max_throttled_humid
+          indoor_temp_c: !lambda "return float(id(indoor_temp_c).state);"
+          outdoor_temp_c: !lambda "return float(id(outdoor_temp_c).state);"
+          r_val: !lambda "return float(id(r_factor).state);" 
       - script.execute:
           id: eval_humid
           current_humid: !lambda "return float(id(humid_familyroom).state);"
 
   - platform: mqtt_subscribe
-    name: "Humidity Max Limit"
-    id: humid_max
-    topic: esphome/devices/${name}/humidity_level/max
+    name: "Humidity Setpoint"
+    id: humid_setpoint
+    topic: esphome/devices/${name}/humidity/setpoint
     qos: 2
     on_value:
-      - logger.log: "Humidity upper limit setpoint adjusted."      
+      - logger.log: "Humidity setpoint adjusted."      
+      - script.execute:
+          id: update_max_throttled_humid
+          indoor_temp_c: !lambda "return float(id(indoor_temp_c).state);"
+          outdoor_temp_c: !lambda "return float(id(outdoor_temp_c).state);"
+          r_val: !lambda "return float(id(r_factor).state);" 
       - script.execute:
           id: eval_humid
           current_humid: !lambda "return float(id(humid_familyroom).state);"
 
+  - platform: template
+    id: humid_setpoint_adjusted
+    name: "Adjusted Humidity Setpoint"
+    internal: false
+    icon: "mdi:water-percent-alert"
+
+  - platform: mqtt_subscribe
+    name: "Window R-Factor"
+    id: r_factor
+    topic: esphome/devices/${name}/r_factor
+    qos: 2
+    on_value:
+      - logger.log: "Window R-Factor adjusted."
+      - script.execute:
+          id: update_max_throttled_humid
+          indoor_temp_c: !lambda "return float(id(indoor_temp_c).state);"
+          outdoor_temp_c: !lambda "return float(id(outdoor_temp_c).state);"
+          r_val: !lambda "return float(x);"  
+
+  - platform: homeassistant
+    id: outdoor_temp_c
+    entity_id: !secret weather_sensor
+    attribute: temperature
+    filters:
+      - lambda: !lambda "return float(5.0/9.0 * (x-32.0));"
+    on_value:
+      - logger.log:
+          format: "Outdoor temperature changed to %.1f."
+          args: [ 'id(outdoor_temp_c).state' ]     
+      - script.execute:
+          id: update_max_throttled_humid
+          indoor_temp_c: !lambda "return float(id(indoor_temp_c).state);"
+          outdoor_temp_c: !lambda "return float(x);"
+          r_val: !lambda "return float(id(r_factor).state);"          
+
+
+  - platform: homeassistant
+    id: indoor_temp_c
+    entity_id: sensor.esp32_familyroom_env_temperature
+    filters:
+      - lambda: !lambda "return float(5.0/9.0 * (x-32.0));"
+    on_value:
+      - logger.log:
+          format: "Indoor temperature changed to %.1f."
+          args: [ 'id(indoor_temp_c).state' ]
+      - script.execute:
+          id: update_max_throttled_humid
+          indoor_temp_c: !lambda "return float(x);"
+          outdoor_temp_c: !lambda "return float(id(outdoor_temp_c).state);"
+          r_val: !lambda "return float(id(r_factor).state);"             
+
+
+# ##########################################
   - platform: homeassistant
     id: humid_familyroom
     entity_id: sensor.esp32_familyroom_env_humidity
@@ -269,7 +372,8 @@ sensor:
       - filter_out: nan
       - round: 0
       - lambda: !lambda "return int(x);"
-
+# 
+#####################################################
   # combine humidity readings throughout the house
   - platform: kalman_combinator
     name: "Household Humidity"
@@ -292,6 +396,11 @@ sensor:
       - logger.log:
           format: "Household humidity changed to %.1f."
           args: [ 'id(household_humidity_kalman).state' ] 
+      - script.execute:
+          id: update_max_throttled_humid
+          indoor_temp_c: !lambda "return float(id(indoor_temp_c).state);"
+          outdoor_temp_c: !lambda "return float(id(outdoor_temp_c).state);"
+          r_val: !lambda "return float(id(r_factor).state);" 
       - script.execute:
           id: eval_humid
           current_humid: !lambda "return float(x);"
@@ -425,21 +534,68 @@ script:
           condition:
             and:
               - binary_sensor.is_on: heat_mode_satisfied
-              - lambda: !lambda "return int(current_humid) <= int(id(humid_min).state);"
+              - lambda: |-
+                  if( int(current_humid) <= id(humid_setpoint_adjusted).state - id(humid_hysteresis).state ) {
+                    return true;
+                  } else {
+                    return false;
+                  }
               - text_sensor.state:
                   id: humidifier_status
                   state: 'off'
           then:
-            - logger.log: "Need to turn ON the steam!"
-            - button.press: toggle_steam 
-
+              - logger.log: "Need to turn ON the steam!"
+              - button.press: toggle_steam 
       - if:
           condition:
             and:
-              - lambda: !lambda "return int(current_humid) >= int(id(humid_max).state);"
+              - lambda: |-
+                  if( int(current_humid) >= id(humid_setpoint_adjusted).state + id(humid_hysteresis).state ) {
+                    return true;
+                  } else {
+                    return false;
+                  }
               - text_sensor.state:
                   id: humidifier_status
                   state: 'on'
           then:
             - logger.log: "Need to turn OFF the steam!" 
             - button.press: toggle_steam
+
+  - id: update_max_throttled_humid
+    parameters:
+      indoor_temp_c: float
+      outdoor_temp_c: float
+      r_val: float
+    then:
+      - lambda: |-
+            ESP_LOGD("lambda", "indoor_temp_c set to: %f", indoor_temp_c);
+            ESP_LOGD("lambda", "outdoor_temp_c set to: %f", outdoor_temp_c);
+            ESP_LOGD("lambda", "r_val set to: %f", r_val);
+            if( id(avoid_condensation).state == true) {      
+
+              int humid_limit;
+
+              // Calculate the window surface temperature using the R-value
+              double T_window_surface_with_R = indoor_temp_c - (indoor_temp_c - outdoor_temp_c) / r_val;
+              ESP_LOGD("lambda", "T_window_surface_with_R set to: %f", T_window_surface_with_R);
+
+              // Calculate the RH at which condensation occurs
+              double rh_at_condensation_with_R = calc_relative_humidity(indoor_temp_c, T_window_surface_with_R);
+              ESP_LOGD("lambda", "rh_at_condensation_with_R set to: %f", rh_at_condensation_with_R); 
+
+              // Got the dewpoint, now we need a buffer so we don't exceed it
+              int h_buffer = int(round(id(humid_hysteresis).state / 2));
+
+              humid_limit = int(rh_at_condensation_with_R) - h_buffer;
+              if( humid_limit < int(id(humid_setpoint).state) ) {
+                id(humid_setpoint_adjusted).publish_state(humid_limit);
+                ESP_LOGD("lambda", "THROTTLED humid_max_throttled set to: %d", humid_limit);
+              } else {
+                id(humid_setpoint_adjusted).publish_state(int(id(humid_setpoint).state));
+              }
+            } else {
+              ESP_LOGD("lambda", "avoid_condensation is apparently false");
+              ESP_LOGD("lambda", "UNTHROTTLED humid_max_throttled");
+              id(humid_setpoint_adjusted).publish_state(int(id(humid_setpoint).state));
+            }
