@@ -120,7 +120,7 @@ switch:
     name: "Avoid Window Condensation"
     optimistic: true
     icon: "mdi:snowflake-melt"
-    restore_mode: "RESTORE_DEFAULT_OFF"
+    restore_mode: "RESTORE_DEFAULT_ON"
     on_turn_on:
       - logger.log: "Avoid Window Condensation ON"
       - script.execute:
