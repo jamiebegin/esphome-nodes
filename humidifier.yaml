@@ -297,6 +297,9 @@ sensor:
     name: "Adjusted Humidity Setpoint"
     internal: false
     icon: "mdi:water-percent-alert"
+    device_class: "humidity"
+    state_class: "measurement"
+    unit_of_measurement: "%"
 
   - platform: mqtt_subscribe
     name: "Window R-Factor"
@@ -588,7 +591,7 @@ script:
               int h_buffer = int(round(id(humid_hysteresis).state / 2));
 
               humid_limit = int(rh_at_condensation_with_R) - h_buffer;
-              if( humid_limit < int(id(humid_setpoint).state) ) {
+              if( humid_limit <= int(id(humid_setpoint).state) ) {
                 id(humid_setpoint_adjusted).publish_state(humid_limit);
                 ESP_LOGD("lambda", "THROTTLED humid_max_throttled set to: %d", humid_limit);
               } else {
