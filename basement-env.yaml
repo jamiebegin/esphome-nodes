@@ -1,0 +1,365 @@
+substitutions:
+  name: esp32-basement-env
+  area: "Basement"
+  friendly_name: "Basement Env Sensors"
+  ip_addr: 192.168.5.114
+  board: featheresp32
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  name_add_mac_suffix: false
+  area: ${area}
+
+esp32:
+  board: ${board}
+  framework:
+    type: arduino
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pwd
+  fast_connect: False
+  reboot_timeout: 15min
+  domain: !secret domain
+  manual_ip:
+    static_ip: ${ip_addr}
+    gateway: !secret gateway
+    subnet: !secret subnet
+    dns1: !secret dns_server
+
+  ap:
+    ssid: "${name}"
+    password: !secret fallback_ap_pwd
+
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: !secret timezone
+    servers: !secret ntp_server
+
+mqtt:
+  broker: !secret mqtt_broker
+  topic_prefix: esphome/devices/${name}
+  birth_message:
+    topic: esphome/availability/${name}
+    payload: online
+  will_message:
+    topic: esphome/availability/${name}
+    payload: offline
+
+# #######################################
+# debug:
+#   update_interval: 5s
+
+logger:
+  level: debug
+  on_message:
+    - level: ERROR
+      then:
+        - mqtt.publish:
+            retain: false
+            qos: 1
+            topic: esphome/device_logs/${name}/error
+            payload: !lambda |-
+              return "Triggered on_message with level " + to_string(level) + ", tag " + tag + " and message " + message;
+    - level: WARN
+      then:
+        - mqtt.publish:
+            retain: false
+            qos: 1          
+            topic: esphome/device_logs/${name}/warning
+            payload: !lambda |-
+              return "Triggered on_message with level " + to_string(level) + ", tag " + tag + " and message " + message;
+
+api:
+
+ota:
+# #######################################
+
+switch:
+  - platform: restart
+    name: "Restart"
+  - platform: shutdown
+    name: "Shutdown"    
+
+button:
+  - platform: safe_mode
+    name: "Safe Mode Boot"
+    entity_category: diagnostic
+
+  # - platform: template
+  #   name: "Clean Sensor"
+  #   on_press:
+  #     then:
+  #       - sps30.start_fan_autoclean: sps30_basement
+
+binary_sensor:
+  - platform: status
+    name: "Status"
+
+i2c:
+  scan: True
+  id: bus_b
+
+sensor:
+  - platform: wifi_signal
+    name: "Wifi Signal"
+    update_interval: 1min
+    force_update: true
+    expire_after: 60min
+    filters:
+      - median:
+          window_size: 241
+          send_every: 60
+          send_first_at: 1
+
+  - platform: uptime
+    name: "Uptime"
+
+  # - platform: debug
+  #   free:
+  #     name: "Heap Free"
+  #   block:
+  #     name: "Heap Max Block"
+  #   loop_time:
+  #     name: "Loop Time"
+
+  - platform: homeassistant
+    id: basement_pm25_24hr
+    internal: true
+    entity_id: sensor.basement_pm25_24_hrs
+
+# #########################################
+  - platform: bme680
+    temperature:
+      name: "Temperature"
+      oversampling: 16x
+      force_update: true
+      expire_after: 60min
+      filters:
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 300
+            send_first_at: 1   
+    pressure:
+      name: "Pressure"
+      force_update: true
+      expire_after: 60min
+      filters:
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 300
+            send_first_at: 1 
+    humidity:
+      id: "humidity"
+      name: "Humidity"
+      force_update: true
+      expire_after: 60min
+      filters:
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 300
+            send_first_at: 1
+    gas_resistance:
+      id: "gas_resistance"
+      name: "Gas Resistance"
+      force_update: true
+      expire_after: 60min
+      filters:
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 300
+            send_first_at: 1  
+    address: 0x77
+    update_interval: 1s
+
+  # - platform: scd30
+  #   co2:
+  #     name: "CO₂"
+  #     id: co2
+  #     accuracy_decimals: 1
+  #     force_update: true
+  #     expire_after: 60min
+  #     filters:
+  #       - exponential_moving_average:
+  #           alpha: 0.1
+  #           send_every: 300
+  #           send_first_at: 1   
+  #   temperature:
+  #     id: scd30_temp
+  #     name: "SCD30 Temperature"
+  #     accuracy_decimals: 0
+  #     force_update: true
+  #     expire_after: 60min
+  #     filters:
+  #       - exponential_moving_average:
+  #           alpha: 0.1
+  #           send_every: 300
+  #           send_first_at: 1
+  #   humidity:
+  #     id: scd30_humid
+  #     name: "SCD30 Humidity"
+  #     accuracy_decimals: 0
+  #     force_update: true
+  #     expire_after: 60min
+  #     filters:
+  #       - exponential_moving_average:
+  #           alpha: 0.1
+  #           send_every: 300
+  #           send_first_at: 1
+  #   address: 0x61
+  #   update_interval: 1s
+
+  # - platform: sps30
+  #   id: sps30_basement
+  #   pm_1_0:
+  #     name: "PM <1µm Weight concentration"
+  #     id: "pm_1_0"
+  #     expire_after: 8h
+  #     force_update: true
+  #     filters:
+  #       - median:
+  #           window_size: 601
+  #           send_every: 300
+  #           send_first_at: 1
+  #   pm_2_5:
+  #     name: "PM <2.5µm Weight concentration"
+  #     id: "pm_2_5"
+  #     expire_after: 8h
+  #     force_update: true
+  #     filters:
+  #       - median:
+  #           window_size: 601
+  #           send_every: 300
+  #           send_first_at: 1
+  #   pm_4_0:
+  #     name: "PM <4µm Weight concentration"
+  #     id: "pm_4_0"
+  #     expire_after: 8h
+  #     force_update: true
+  #     filters:
+  #       - median:
+  #           window_size: 601
+  #           send_every: 300
+  #           send_first_at: 1
+  #   pm_10_0:
+  #     name: "PM <10µm Weight concentration"
+  #     id: "pm_10_0"
+  #     expire_after: 8h
+  #     force_update: true
+  #     filters:
+  #       - median:
+  #           window_size: 601
+  #           send_every: 300
+  #           send_first_at: 1
+  #   pmc_0_5:
+  #     name: "PM <0.5µm Number concentration"
+  #     unit_of_measurement: "qty/cm³"
+  #     id: "pmc_0_5"
+  #     expire_after: 8h
+  #     force_update: true
+  #     state_class: "measurement"
+  #     filters:
+  #       - median:
+  #           window_size: 601
+  #           send_every: 300
+  #           send_first_at: 1
+  #   pmc_1_0:
+  #     name: "PM <1µm Number concentration"
+  #     unit_of_measurement: "qty/cm³"
+  #     id: "pmc_1_0"
+  #     expire_after: 8h
+  #     force_update: true
+  #     state_class: "measurement"
+  #     filters:
+  #       - median:
+  #           window_size: 601
+  #           send_every: 300
+  #           send_first_at: 1
+  #   pmc_2_5:
+  #     name: "PM <2.5µm Number concentration"
+  #     unit_of_measurement: "qty/cm³"
+  #     id: "pmc_2_5"
+  #     expire_after: 8h
+  #     force_update: true
+  #     state_class: "measurement"
+  #     filters:
+  #       - median:
+  #           window_size: 601
+  #           send_every: 300
+  #           send_first_at: 1
+  #   pmc_4_0:
+  #     name: "PM <4µm Number concentration"
+  #     unit_of_measurement: "qty/cm³"
+  #     id: "pmc_4_0"
+  #     expire_after: 8h
+  #     force_update: true
+  #     state_class: "measurement"
+  #     filters:
+  #       - median:
+  #           window_size: 601
+  #           send_every: 300
+  #           send_first_at: 1
+  #   pmc_10_0:
+  #     name: "PM <10µm Number concentration"
+  #     unit_of_measurement: "qty/cm³"
+  #     id: "pmc_10_0"
+  #     expire_after: 8h
+  #     force_update: true
+  #     state_class: "measurement"
+  #     filters:
+  #       - median:
+  #           window_size: 601
+  #           send_every: 300
+  #           send_first_at: 1
+  #   pm_size:
+  #     name: "Typical Particle size"
+  #     id: "pm_size"
+  #     expire_after: 8h
+  #     force_update: true
+  #     filters:
+  #       - median:
+  #           window_size: 601
+  #           send_every: 300
+  #           send_first_at: 1
+  #   address: 0x69
+  #   update_interval: 10s
+
+text_sensor:
+  - platform: version
+    name: "ESPHome Version"
+    icon: "mdi:chip"
+
+  # - platform: debug
+  #   device:
+  #     name: "Device Info"
+  #   reset_reason:
+  #     name: "Reset Reason"
+
+  # - platform: template
+  #   name: "PM25 Limits"
+  #   icon: "mdi:virus"
+  #   lambda: |-
+  #     if (int(id(pm_2_5).state) < 5 && int(id(basement_pm25_24hr).state) < 15) {
+  #       return {"Ok"};
+  #     }
+  #     else if (int(id(pm_2_5).state) >= 5 || int(id(basement_pm25_24hr).state) >= 15) {
+  #       return {"Warning!"};
+  #     }
+  #     else {
+  #       return {"unknown"};
+  #     }
+  # - platform: template
+  #   name: "PM10 Limits"
+  #   icon: "mdi:virus"
+  #   lambda: |-
+  #     if (int(id(pm_10_0).state) < 54) {
+  #       return {"Ok"};
+  #     }
+  #     else if (int(id(pm_10_0).state) >= 54) {
+  #       return {"Warning!"};
+  #     }
+  #     else {
+  #       return {"unknown"};
+  #     }
