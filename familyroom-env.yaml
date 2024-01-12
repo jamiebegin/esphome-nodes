@@ -191,7 +191,7 @@ sensor:
             alpha: 0.1
             send_every: 300
             send_first_at: 1
-    temperature_offset: 3.4 °C
+    #temperature_offset: 3.4 °C
     ambient_pressure_compensation: 0.983
     altitude_compensation: 262m
     address: 0x61
