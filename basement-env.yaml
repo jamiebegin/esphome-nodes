@@ -125,22 +125,51 @@ sensor:
     loop_time:
       name: "Loop Time"
 
-  # 3.7V lithium cell
+  # 3.7V lithium cell discharge curve
   - platform: adc
     pin: A13
     name: "Battery Level"
-    icon: "mdi:battery"
+    #icon: "mdi:battery"
     unit_of_measurement: "%"
+    state_class: "measurement"
+    device_class: "battery"
+    expire_after: 60s
     attenuation: 11db
-    update_interval: 5s
+    update_interval: 1s
+    accuracy_decimals: 0
     filters:
-      - lambda: !lambda "return int(((x * 2.0)/3.7)*100);"
+      - calibrate_polynomial:
+         degree: 2
+         datapoints:        
+          - 1.930293125 -> 99.61202716
+          - 1.896664926 -> 97.47817653
+          - 1.875055958 -> 95.3443259
+          - 1.84865795 -> 91.6585839
+          - 1.82948547 -> 86.80892338
+          - 1.817503544 -> 83.70514064
+          - 1.8103433 -> 79.43743938
+          - 1.798401011 -> 73.03588749
+          - 1.791252425 -> 67.79825412
+          - 1.78412016 -> 61.20271581
+          - 1.776990226 -> 54.41319108
+          - 1.765094568 -> 44.13191077
+          - 1.757971629 -> 36.76042677
+          - 1.75086268 -> 28.22502425
+          - 1.743735078 -> 21.24151309
+          - 1.736563176 -> 17.94374394
+          - 1.72459524 -> 13.67604268
+          - 1.712613314 -> 10.57225994
+          - 1.69341985 -> 7.468477207
+          - 1.659800977 -> 4.558680892
+          - 1.626170447 -> 2.618816683
+      - lambda: !lambda "return int(x);"
       - clamp:
           max_value: 100
       - exponential_moving_average:
           alpha: 0.1
-          send_every: 12
+          send_every: 15
           send_first_at: 1
+      - round: 0
 
   - platform: homeassistant
     id: basement_pm25_24hr
@@ -419,4 +448,29 @@ text_sensor:
       else {
         return {"unknown"};
       }
-     
+
+  - platform: template
+    name: "CO₂ Exposure Classification"
+    icon: "mdi:checkbox-marked-circle-outline"
+    lambda: |-
+      if (int(id(co2).state) <= 400) {
+        return {"Excellent"};
+      }
+      else if (int(id(co2).state) <= 1000) {
+        return {"Fine"};
+      }
+      else if (int(id(co2).state) <= 1500) {
+        return {"Moderate"};
+      }
+      else if (int(id(co2).state) <= 2000) {
+        return {"Poor"};
+      }
+      else if (int(id(co2).state) <= 5000) {
+        return {"Very Poor"};
+      }
+      else if (int(id(co2).state) > 5000) {
+        return {"Severe"};
+      }
+      else {
+        return {"unknown"};
+      }
