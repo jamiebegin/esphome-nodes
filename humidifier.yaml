@@ -262,6 +262,11 @@ sensor:
       name: "Heap Max Block"
     loop_time:
       name: "Loop Time"
+      filters:
+        - max:
+            window_size: 12
+            send_every: 6
+            send_first_at: 3 
 
   - platform: wifi_signal
     id: wifi_signal_dbm
