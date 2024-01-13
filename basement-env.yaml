@@ -104,14 +104,15 @@ i2c:
 
 sensor:
   - platform: wifi_signal
+    id: wifi_signal_dbm
     name: "Wifi Signal"
     update_interval: 1min
     force_update: true
     expire_after: 60min
     filters:
-      - median:
-          window_size: 241
-          send_every: 60
+      - exponential_moving_average:
+          alpha: 0.1
+          send_every: 240
           send_first_at: 1
 
   - platform: uptime
@@ -137,37 +138,29 @@ sensor:
     attenuation: auto
     update_interval: 1s
     filters:
-      #- multiply: 0.86 # convert measured V to actual battery V
-      # - calibrate_polynomial:
-      #    degree: 3
-      #    datapoints:        
-      #     - 1.93 -> 99.61
-      #     - 1.90 -> 97.48
-      #     - 1.88 -> 95.34
-      #     - 1.85 -> 91.66
-      #     - 1.83 -> 86.81
-      #     - 1.82 -> 83.71
-      #     - 1.10 -> 79.44
-      #     - 1.80 -> 73.04
-      #     - 1.79 -> 67.80
-      #     - 1.78 -> 61.20
-      #     - 1.77 -> 44.13
-      #     - 1.76 -> 36.76
-      #     - 1.75 -> 28.23
-      #     - 1.74 -> 21.24
-      #     - 1.73 -> 16.94
-      #     - 1.72 -> 13.68
-      #     - 1.71 -> 10.57
-      #     - 1.69 -> 7.47
-      #     - 1.66 -> 4.56
-      #     - 1.63 -> 2.62
-      # - clamp:
-      #     max_value: 100
+      - multiply: 2.07 # convert measured V to actual battery V
+      - calibrate_polynomial:
+         degree: 3
+         datapoints:        
+          - 4.2820 -> 98.9204
+          - 4.0564 -> 96.6262
+          - 3.9041 -> 92.0378
+          - 3.8026 -> 83.9406
+          - 3.7519 -> 74.4939
+          - 3.7293 -> 66.9366
+          - 3.7180 -> 54.2510
+          - 3.7179 -> 35.0877
+          - 3.7177 -> 14.8448
+          - 3.7174 -> 5.9379
+          - 3.6955 -> -3.5088
+      - clamp:
+          max_value: 100
       - exponential_moving_average:
           alpha: 0.5
           send_every: 10
           send_first_at: 1
-    accuracy_decimals: 2
+      - delta: 5.0
+    accuracy_decimals: 0
 
   - platform: homeassistant
     id: basement_pm25_24hr
@@ -373,7 +366,7 @@ sensor:
     update_interval: 10s
 
   - platform: template
-    name: "Indoor Air Quality"
+    name: "Air Quality Index"
     id: iaq
     state_class: "measurement"
     device_class: "aqi"
@@ -475,3 +468,32 @@ text_sensor:
       else {
         return {"unknown"};
       }
+
+  - platform: template
+    name: "WiFi Signal Quality"
+    icon: "mdi:wifi-star"
+    lambda: |-
+      if (int(id(wifi_signal_dbm).state) >= -30) {
+        return {"Perfect"};
+      }
+      else if (int(id(wifi_signal_dbm).state) >= -50) {
+        return {"Excellent"};
+      }
+      else if (int(id(wifi_signal_dbm).state) >= -60) {
+        return {"Good"};
+      }
+      else if (int(id(wifi_signal_dbm).state) >= -67) {
+        return {"Marginal"};
+      }
+      else if (int(id(wifi_signal_dbm).state) >= -70) {
+        return {"Poor"};
+      }
+      else if (int(id(wifi_signal_dbm).state) >= -80) {
+        return {"Unstable"};
+      }  
+      else if (int(id(wifi_signal_dbm).state) >= -90) {
+        return {"Unusable"};
+      }
+      else {
+        return {"unknown"};
+      }      
