@@ -132,12 +132,15 @@ sensor:
     icon: "mdi:battery"
     unit_of_measurement: "%"
     attenuation: 11db
-    update_interval: 60s
+    update_interval: 5s
     filters:
-      - lambda: !lambda "return (3.7 / (x * 2.0))*100;"
+      - lambda: !lambda "return ((x * 2.0)/3.7)*100;"
       - clamp:
           max_value: 100.0
-
+      - exponential_moving_average:
+          alpha: 0.1
+          send_every: 12
+          send_first_at: 1
 
   - platform: homeassistant
     id: basement_pm25_24hr
@@ -233,8 +236,8 @@ sensor:
       expire_after: 8h
       force_update: true
       filters:
-        - median:
-            window_size: 601
+        - exponential_moving_average:
+            alpha: 0.1
             send_every: 300
             send_first_at: 1
     pm_2_5:
@@ -243,8 +246,8 @@ sensor:
       expire_after: 8h
       force_update: true
       filters:
-        - median:
-            window_size: 601
+        - exponential_moving_average:
+            alpha: 0.1
             send_every: 300
             send_first_at: 1
     pm_4_0:
@@ -253,8 +256,8 @@ sensor:
       expire_after: 8h
       force_update: true
       filters:
-        - median:
-            window_size: 601
+        - exponential_moving_average:
+            alpha: 0.1
             send_every: 300
             send_first_at: 1
     pm_10_0:
@@ -263,8 +266,8 @@ sensor:
       expire_after: 8h
       force_update: true
       filters:
-        - median:
-            window_size: 601
+        - exponential_moving_average:
+            alpha: 0.1
             send_every: 300
             send_first_at: 1
     pmc_0_5:
@@ -275,8 +278,8 @@ sensor:
       force_update: true
       state_class: "measurement"
       filters:
-        - median:
-            window_size: 601
+        - exponential_moving_average:
+            alpha: 0.1
             send_every: 300
             send_first_at: 1
     pmc_1_0:
@@ -287,8 +290,8 @@ sensor:
       force_update: true
       state_class: "measurement"
       filters:
-        - median:
-            window_size: 601
+        - exponential_moving_average:
+            alpha: 0.1
             send_every: 300
             send_first_at: 1
     pmc_2_5:
@@ -299,8 +302,8 @@ sensor:
       force_update: true
       state_class: "measurement"
       filters:
-        - median:
-            window_size: 601
+        - exponential_moving_average:
+            alpha: 0.1
             send_every: 300
             send_first_at: 1
     pmc_4_0:
@@ -311,8 +314,8 @@ sensor:
       force_update: true
       state_class: "measurement"
       filters:
-        - median:
-            window_size: 601
+        - exponential_moving_average:
+            alpha: 0.1
             send_every: 300
             send_first_at: 1
     pmc_10_0:
@@ -323,8 +326,8 @@ sensor:
       force_update: true
       state_class: "measurement"
       filters:
-        - median:
-            window_size: 601
+        - exponential_moving_average:
+            alpha: 0.1
             send_every: 300
             send_first_at: 1
     pm_size:
@@ -333,8 +336,8 @@ sensor:
       expire_after: 8h
       force_update: true
       filters:
-        - median:
-            window_size: 601
+        - exponential_moving_average:
+            alpha: 0.1
             send_every: 300
             send_first_at: 1
     address: 0x69
