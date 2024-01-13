@@ -134,9 +134,9 @@ sensor:
     attenuation: 11db
     update_interval: 5s
     filters:
-      - lambda: !lambda "return ((x * 2.0)/3.7)*100;"
+      - lambda: !lambda "return int(((x * 2.0)/3.7)*100);"
       - clamp:
-          max_value: 100.0
+          max_value: 100
       - exponential_moving_average:
           alpha: 0.1
           send_every: 12
@@ -343,6 +343,15 @@ sensor:
     address: 0x69
     update_interval: 10s
 
+  - platform: template
+    name: "Indoor Air Quality"
+    id: iaq
+    icon: "mdi:gauge"
+    expire_after: 60min
+    # caulculation: comp_gas = log(R_gas[ohm]) + 0.04 log(Ohm)/%rh * hum[%rh]
+    lambda: |-
+      return log(id(gas_resistance).state) + 0.04 *  id(humidity).state;
+
 text_sensor:
   - platform: version
     name: "ESPHome Version"
@@ -367,6 +376,7 @@ text_sensor:
       else {
         return {"unknown"};
       }
+
   - platform: template
     name: "PM10 Limits"
     icon: "mdi:virus"
@@ -380,3 +390,33 @@ text_sensor:
       else {
         return {"unknown"};
       }
+
+  - platform: template
+    name: "IAQ Classification"
+    icon: "mdi:checkbox-marked-circle-outline"
+    lambda: |-
+      if (int(id(iaq).state) <= 50) {
+        return {"Excellent"};
+      }
+      else if (int(id(iaq).state) <= 100) {
+        return {"Good"};
+      }
+      else if (int(id(iaq).state) <= 150) {
+        return {"Lightly polluted"};
+      }
+      else if (int(id(iaq).state) <= 200) {
+        return {"Moderately polluted"};
+      }
+      else if (int(id(iaq).state) <= 250) {
+        return {"Heavily polluted"};
+      }
+      else if (int(id(iaq).state) <= 350) {
+        return {"Severely polluted"};
+      }
+      else if (int(id(iaq).state) <= 500) {
+        return {"Extremely polluted"};
+      }
+      else {
+        return {"unknown"};
+      }
+     
