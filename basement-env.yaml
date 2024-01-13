@@ -134,42 +134,40 @@ sensor:
     state_class: "measurement"
     device_class: "battery"
     expire_after: 60s
-    attenuation: 11db
+    attenuation: auto
     update_interval: 1s
-    accuracy_decimals: 0
     filters:
-      - calibrate_polynomial:
-         degree: 3
-         datapoints:        
-          - 1.930293125 -> 99.61202716
-          - 1.896664926 -> 97.47817653
-          - 1.875055958 -> 95.3443259
-          - 1.84865795 -> 91.6585839
-          - 1.82948547 -> 86.80892338
-          - 1.817503544 -> 83.70514064
-          - 1.8103433 -> 79.43743938
-          - 1.798401011 -> 73.03588749
-          - 1.791252425 -> 67.79825412
-          - 1.78412016 -> 61.20271581
-          - 1.776990226 -> 54.41319108
-          - 1.765094568 -> 44.13191077
-          - 1.757971629 -> 36.76042677
-          - 1.75086268 -> 28.22502425
-          - 1.743735078 -> 21.24151309
-          - 1.736563176 -> 17.94374394
-          - 1.72459524 -> 13.67604268
-          - 1.712613314 -> 10.57225994
-          - 1.69341985 -> 7.468477207
-          - 1.659800977 -> 4.558680892
-          - 1.626170447 -> 2.618816683
-      - lambda: !lambda "return int(x);"
-      - clamp:
-          max_value: 100
+      #- multiply: 0.86 # convert measured V to actual battery V
+      # - calibrate_polynomial:
+      #    degree: 3
+      #    datapoints:        
+      #     - 1.93 -> 99.61
+      #     - 1.90 -> 97.48
+      #     - 1.88 -> 95.34
+      #     - 1.85 -> 91.66
+      #     - 1.83 -> 86.81
+      #     - 1.82 -> 83.71
+      #     - 1.10 -> 79.44
+      #     - 1.80 -> 73.04
+      #     - 1.79 -> 67.80
+      #     - 1.78 -> 61.20
+      #     - 1.77 -> 44.13
+      #     - 1.76 -> 36.76
+      #     - 1.75 -> 28.23
+      #     - 1.74 -> 21.24
+      #     - 1.73 -> 16.94
+      #     - 1.72 -> 13.68
+      #     - 1.71 -> 10.57
+      #     - 1.69 -> 7.47
+      #     - 1.66 -> 4.56
+      #     - 1.63 -> 2.62
+      # - clamp:
+      #     max_value: 100
       - exponential_moving_average:
           alpha: 0.5
           send_every: 10
           send_first_at: 1
-      - round: 0
+    accuracy_decimals: 2
 
   - platform: homeassistant
     id: basement_pm25_24hr
@@ -183,6 +181,7 @@ sensor:
       oversampling: 16x
       force_update: true
       expire_after: 60min
+      accuracy_decimals: 0
       filters:
         - exponential_moving_average:
             alpha: 0.1
@@ -202,6 +201,7 @@ sensor:
       name: "Humidity"
       force_update: true
       expire_after: 60min
+      accuracy_decimals: 0      
       filters:
         - exponential_moving_average:
             alpha: 0.1
@@ -457,10 +457,10 @@ text_sensor:
         return {"Excellent"};
       }
       else if (int(id(co2).state) <= 1000) {
-        return {"Fine"};
+        return {"Good"};
       }
       else if (int(id(co2).state) <= 1500) {
-        return {"Moderate"};
+        return {"Borderline"};
       }
       else if (int(id(co2).state) <= 2000) {
         return {"Poor"};
@@ -469,7 +469,7 @@ text_sensor:
         return {"Very Poor"};
       }
       else if (int(id(co2).state) > 5000) {
-        return {"Severe"};
+        return {"Severe!"};
       }
       else {
         return {"unknown"};
