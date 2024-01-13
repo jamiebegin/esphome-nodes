@@ -139,7 +139,7 @@ sensor:
     accuracy_decimals: 0
     filters:
       - calibrate_polynomial:
-         degree: 2
+         degree: 3
          datapoints:        
           - 1.930293125 -> 99.61202716
           - 1.896664926 -> 97.47817653
@@ -166,8 +166,8 @@ sensor:
       - clamp:
           max_value: 100
       - exponential_moving_average:
-          alpha: 0.1
-          send_every: 15
+          alpha: 0.5
+          send_every: 10
           send_first_at: 1
       - round: 0
 
