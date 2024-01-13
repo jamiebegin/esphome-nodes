@@ -95,6 +95,12 @@ text_sensor:
     name: "ESPHome Version"
     icon: "mdi:chip"
 
+  - platform: debug
+    device:
+      name: "Device Info"
+    reset_reason:
+      name: "Reset Reason"    
+
   - platform: template
     name: "PM25 Limits"
     icon: "mdi:virus"
@@ -185,7 +191,7 @@ sensor:
       force_update: true
       expire_after: 60min
       filters:
-        - offset: -3.4
+        - offset: -5.4
         - exponential_moving_average:
             alpha: 0.1
             send_every: 300
@@ -207,7 +213,7 @@ sensor:
             alpha: 0.1
             send_every: 300
             send_first_at: 1
-    #temperature_offset: 3.4 °C
+    temperature_offset: 3.0 °C
     ambient_pressure_compensation: 0.983
     altitude_compensation: 262m
     address: 0x61

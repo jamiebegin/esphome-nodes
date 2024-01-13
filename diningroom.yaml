@@ -166,6 +166,12 @@ text_sensor:
     name: "ESPHome Version"
     icon: "mdi:chip"
 
+  - platform: debug
+    device:
+      name: "Device Info"
+    reset_reason:
+      name: "Reset Reason"
+
   - platform: template
     name: "WiFi Signal Quality"
     icon: "mdi:wifi-star"
