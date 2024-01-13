@@ -53,6 +53,9 @@ mqtt:
     payload: offline  
 
 # #######################################
+debug:
+  update_interval: 5s
+
 logger:
 
 api:
@@ -125,8 +128,21 @@ binary_sensor:
 
 sensor:
   - platform: uptime
-    name: Uptime
-    expire_after: 30min
+    name: "Uptime"
+    expire_after: 300s
+
+  - platform: debug
+    free:
+      name: "Heap Free"
+    block:
+      name: "Heap Max Block"
+    loop_time:
+      name: "Loop Time"
+      filters:
+        - max:
+            window_size: 12
+            send_every: 6
+            send_first_at: 3 
 
   - platform: wifi_signal
     name: "Wifi Signal"
@@ -169,7 +185,7 @@ sensor:
       force_update: true
       expire_after: 60min
       filters:
-        #- offset: -3.4
+        - offset: -3.4
         - exponential_moving_average:
             alpha: 0.1
             send_every: 300
