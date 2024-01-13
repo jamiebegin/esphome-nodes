@@ -133,14 +133,14 @@ switch:
           id: update_max_throttled_humid
           indoor_temp: !lambda "return float(id(indoor_temp).state);"
           outdoor_temp: !lambda "return float(id(outdoor_temp).state);"
-          r_val: !lambda "return float(id(r_factor).state);"       
+          r_val: !lambda "return float(id(r_value).state);"       
     on_turn_off:
       - logger.log: "Avoid Window Condensation OFF"
       - script.execute:
           id: update_max_throttled_humid
           indoor_temp: !lambda "return float(id(indoor_temp).state);"
           outdoor_temp: !lambda "return float(id(outdoor_temp).state);"
-          r_val: !lambda "return float(id(r_factor).state);"
+          r_val: !lambda "return float(id(r_value).state);"
 
   - platform: template
     id: pause_humid
@@ -279,6 +279,8 @@ sensor:
     name: "Humidity Hysteresis"
     id: humid_hysteresis
     topic: esphome/devices/${name}/humidity/hysteresis
+    state_class: "measurement"
+    device_class: "humidity"
     qos: 2
     on_value:
       - logger.log: "Humidity hysteresis adjusted."
@@ -286,7 +288,7 @@ sensor:
           id: update_max_throttled_humid
           indoor_temp: !lambda "return float(id(indoor_temp).state);"
           outdoor_temp: !lambda "return float(id(outdoor_temp).state);"
-          r_val: !lambda "return float(id(r_factor).state);" 
+          r_val: !lambda "return float(id(r_value).state);" 
       - script.execute:
           id: eval_humid
           current_humid: !lambda "return float(id(indoor_humid).state);"
@@ -294,6 +296,8 @@ sensor:
   - platform: mqtt_subscribe
     name: "Humidity Setpoint"
     id: humid_setpoint
+    device_class: "humidity"
+    state_class: "measurement"    
     topic: esphome/devices/${name}/humidity/setpoint
     qos: 2
     on_value:
@@ -302,7 +306,7 @@ sensor:
           id: update_max_throttled_humid
           indoor_temp: !lambda "return float(id(indoor_temp).state);"
           outdoor_temp: !lambda "return float(id(outdoor_temp).state);"
-          r_val: !lambda "return float(id(r_factor).state);" 
+          r_val: !lambda "return float(id(r_value).state);" 
       - script.execute:
           id: eval_humid
           current_humid: !lambda "return float(id(indoor_humid).state);"
@@ -317,12 +321,13 @@ sensor:
     unit_of_measurement: "%"
 
   - platform: mqtt_subscribe
-    name: "Window R-Factor"
-    id: r_factor
-    topic: esphome/devices/${name}/r_factor
+    name: "Window R-Value"
+    id: r_value
+    topic: esphome/devices/${name}/r_value
     qos: 2
+    state_class: "measurement"
     on_value:
-      - logger.log: "Window R-Factor adjusted."
+      - logger.log: "Window R-Value adjusted."
       - script.execute:
           id: update_max_throttled_humid
           indoor_temp: !lambda "return float(id(indoor_temp).state);"
@@ -341,7 +346,7 @@ sensor:
           id: update_max_throttled_humid
           indoor_temp: !lambda "return float(id(indoor_temp).state);"
           outdoor_temp: !lambda "return float(x);"
-          r_val: !lambda "return float(id(r_factor).state);"          
+          r_val: !lambda "return float(id(r_value).state);"          
 
   - platform: homeassistant
     id: familyroom_temp
@@ -384,7 +389,7 @@ sensor:
           id: update_max_throttled_humid
           indoor_temp: !lambda "return float(x);"
           outdoor_temp: !lambda "return float(id(outdoor_temp).state);"
-          r_val: !lambda "return float(id(r_factor).state);"
+          r_val: !lambda "return float(id(r_value).state);"
 
 
   # combine humidity readings throughout the house
@@ -413,7 +418,7 @@ sensor:
           id: update_max_throttled_humid
           indoor_temp: !lambda "return float(id(indoor_temp).state);"
           outdoor_temp: !lambda "return float(id(outdoor_temp).state);"
-          r_val: !lambda "return float(id(r_factor).state);" 
+          r_val: !lambda "return float(id(r_value).state);" 
       - script.execute:
           id: eval_humid
           current_humid: !lambda "return float(x);"
