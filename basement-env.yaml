@@ -169,7 +169,11 @@ sensor:
   - platform: template
     name: "PM2_5 24 Hr Moving Average"
     id: basement_pm2_5_24hr
-    internal: false
+    icon: "mdi:hours-24"
+    unit_of_measurement: "µg/m³"
+    state_class: "measurement"
+    device_class: "pm25"
+    expire_after: 5d 
     filters:
       - exponential_moving_average:
           alpha: 0.2
@@ -180,7 +184,11 @@ sensor:
   - platform: template
     name: "PM10 24 Hr Moving Average"
     id: basement_pm10_24hr
-    internal: false
+    icon: "mdi:hours-24"
+    unit_of_measurement: "µg/m³"
+    state_class: "measurement"
+    device_class: "pm10"
+    expire_after: 5d 
     filters:
       - exponential_moving_average:
           alpha: 0.2
@@ -276,6 +284,8 @@ sensor:
     pm_1_0:
       name: "PM <1µm Weight concentration"
       id: "pm_1_0"
+      unit_of_measurement: "µg/m³"
+      state_class: "measurement"
       expire_after: 8h
       force_update: true
       filters:
@@ -286,6 +296,8 @@ sensor:
     pm_2_5:
       name: "PM <2.5µm Weight concentration"
       id: "pm_2_5"
+      unit_of_measurement: "µg/m³"
+      state_class: "measurement"      
       expire_after: 8h
       force_update: true
       on_raw_value:
@@ -299,6 +311,8 @@ sensor:
     pm_4_0:
       name: "PM <4µm Weight concentration"
       id: "pm_4_0"
+      unit_of_measurement: "µg/m³"
+      state_class: "measurement"      
       expire_after: 8h
       force_update: true
       filters:
@@ -309,6 +323,8 @@ sensor:
     pm_10_0:
       name: "PM <10µm Weight concentration"
       id: "pm_10_0"
+      unit_of_measurement: "µg/m³"
+      state_class: "measurement"      
       expire_after: 8h
       force_update: true
       on_raw_value:
@@ -436,7 +452,7 @@ text_sensor:
         return {"Extremely Hazardous"};
       }
       else if (int(id(basement_pm2_5_24hr).state) > 500) {
-        return {"Toxic"};
+        return {"Toxic!"};
       }
       else {
         return {"unknown"};
@@ -465,7 +481,7 @@ text_sensor:
         return {"Extremely Hazardous"};
       }
       else if (int(id(basement_pm10_24hr).state) > 604) {
-        return {"Toxic"};
+        return {"Toxic!"};
       }
       else {
         return {"unknown"};
@@ -482,19 +498,19 @@ text_sensor:
         return {"Good"};
       }
       else if (int(id(iaq).state) <= 150) {
-        return {"Lightly polluted"};
+        return {"Lightly Polluted"};
       }
       else if (int(id(iaq).state) <= 200) {
-        return {"Moderately polluted"};
+        return {"Moderately Polluted"};
       }
       else if (int(id(iaq).state) <= 250) {
-        return {"Heavily polluted"};
+        return {"Heavily Polluted"};
       }
       else if (int(id(iaq).state) <= 350) {
-        return {"Severely polluted"};
+        return {"Severely Polluted"};
       }
       else if (int(id(iaq).state) <= 500) {
-        return {"Extremely polluted"};
+        return {"Toxic!"};
       }
       else {
         return {"unknown"};
