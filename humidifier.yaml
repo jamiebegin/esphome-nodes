@@ -477,6 +477,7 @@ sensor:
     name: "BME680 Indoor Air Quality"
     id: iaq
     icon: "mdi:gauge"
+    state_class: "measurement"
     expire_after: 60min
     # caulculation: comp_gas = log(R_gas[ohm]) + 0.04 log(Ohm)/%rh * hum[%rh]
     lambda: |-
