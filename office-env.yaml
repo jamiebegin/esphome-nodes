@@ -68,13 +68,9 @@ logger:
 debug:
   update_interval: 5s
 
-logger:
-
 api:
-  password: ""
 
 ota:
-  password: ""
 # #######################################
 
 i2c:
