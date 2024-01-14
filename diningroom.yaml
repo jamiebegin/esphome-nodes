@@ -93,25 +93,6 @@ button:
     entity_category: diagnostic
 
 sensor:
-  - platform: uptime
-    name: "Uptime"
-    expire_after: 300s
-
-  - platform: debug
-    free:
-      name: "Heap Free"
-    fragmentation:
-      name: "Heap Fragmentation"
-    block:
-      name: "Heap Max Block"
-    loop_time:
-      name: "Loop Time"
-      filters:
-        - max:
-            window_size: 12
-            send_every: 6
-            send_first_at: 3 
-
   - platform: wifi_signal
     id: wifi_signal_dbm
     name: "Wifi Signal"
@@ -123,6 +104,21 @@ sensor:
           alpha: 0.1
           send_every: 240
           send_first_at: 1
+  - platform: uptime
+    name: Uptime
+    expire_after: 15min
+  - platform: debug
+    free:
+      name: "Heap Free"
+    block:
+      name: "Heap Max Block"
+    loop_time:
+      name: "Loop Time"
+      filters:
+        - max:
+            window_size: 12
+            send_every: 6
+            send_first_at: 3
 
   - platform: bme280
     temperature:

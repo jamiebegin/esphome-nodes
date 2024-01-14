@@ -251,23 +251,6 @@ binary_sensor:
     internal: true
 
 sensor:
-  - platform: uptime
-    name: Uptime
-    expire_after: 30min
-
-  - platform: debug
-    free:
-      name: "Heap Free"
-    block:
-      name: "Heap Max Block"
-    loop_time:
-      name: "Loop Time"
-      filters:
-        - max:
-            window_size: 12
-            send_every: 6
-            send_first_at: 3 
-
   - platform: wifi_signal
     id: wifi_signal_dbm
     name: "Wifi Signal"
@@ -279,6 +262,21 @@ sensor:
           alpha: 0.1
           send_every: 240
           send_first_at: 1
+  - platform: uptime
+    name: Uptime
+    expire_after: 15min
+  - platform: debug
+    free:
+      name: "Heap Free"
+    block:
+      name: "Heap Max Block"
+    loop_time:
+      name: "Loop Time"
+      filters:
+        - max:
+            window_size: 12
+            send_every: 6
+            send_first_at: 3
 
   - platform: mqtt_subscribe
     name: "Humidity Hysteresis"

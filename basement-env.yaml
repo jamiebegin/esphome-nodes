@@ -114,10 +114,9 @@ sensor:
           alpha: 0.1
           send_every: 240
           send_first_at: 1
-
   - platform: uptime
-    name: "Uptime"
-
+    name: Uptime
+    expire_after: 15min
   - platform: debug
     free:
       name: "Heap Free"
@@ -125,6 +124,11 @@ sensor:
       name: "Heap Max Block"
     loop_time:
       name: "Loop Time"
+      filters:
+        - max:
+            window_size: 12
+            send_every: 6
+            send_first_at: 3
 
   # 3.7V lithium cell discharge curve
   - platform: adc
@@ -223,7 +227,7 @@ sensor:
       filters:
         - exponential_moving_average:
             alpha: 0.1
-            send_every: 300
+            send_every: 60
             send_first_at: 1   
     temperature:
       id: scd30_temp
@@ -234,7 +238,7 @@ sensor:
       filters:
         - exponential_moving_average:
             alpha: 0.1
-            send_every: 300
+            send_every: 60
             send_first_at: 1
     humidity:
       id: scd30_humid
@@ -245,7 +249,7 @@ sensor:
       filters:
         - exponential_moving_average:
             alpha: 0.1
-            send_every: 300
+            send_every: 60
             send_first_at: 1
     address: 0x61
     update_interval: 1s
@@ -260,7 +264,7 @@ sensor:
       filters:
         - exponential_moving_average:
             alpha: 0.1
-            send_every: 300
+            send_every: 60
             send_first_at: 1
     pm_2_5:
       name: "PM <2.5µm Weight concentration"
@@ -270,7 +274,7 @@ sensor:
       filters:
         - exponential_moving_average:
             alpha: 0.1
-            send_every: 300
+            send_every: 60
             send_first_at: 1
     pm_4_0:
       name: "PM <4µm Weight concentration"
@@ -280,7 +284,7 @@ sensor:
       filters:
         - exponential_moving_average:
             alpha: 0.1
-            send_every: 300
+            send_every: 60
             send_first_at: 1
     pm_10_0:
       name: "PM <10µm Weight concentration"
@@ -290,7 +294,7 @@ sensor:
       filters:
         - exponential_moving_average:
             alpha: 0.1
-            send_every: 300
+            send_every: 60
             send_first_at: 1
     pmc_0_5:
       name: "PM <0.5µm Number concentration"
@@ -302,7 +306,7 @@ sensor:
       filters:
         - exponential_moving_average:
             alpha: 0.1
-            send_every: 300
+            send_every: 60
             send_first_at: 1
     pmc_1_0:
       name: "PM <1µm Number concentration"
@@ -314,7 +318,7 @@ sensor:
       filters:
         - exponential_moving_average:
             alpha: 0.1
-            send_every: 300
+            send_every: 60
             send_first_at: 1
     pmc_2_5:
       name: "PM <2.5µm Number concentration"
@@ -326,7 +330,7 @@ sensor:
       filters:
         - exponential_moving_average:
             alpha: 0.1
-            send_every: 300
+            send_every: 60
             send_first_at: 1
     pmc_4_0:
       name: "PM <4µm Number concentration"
@@ -338,7 +342,7 @@ sensor:
       filters:
         - exponential_moving_average:
             alpha: 0.1
-            send_every: 300
+            send_every: 60
             send_first_at: 1
     pmc_10_0:
       name: "PM <10µm Number concentration"
@@ -350,7 +354,7 @@ sensor:
       filters:
         - exponential_moving_average:
             alpha: 0.1
-            send_every: 300
+            send_every: 60
             send_first_at: 1
     pm_size:
       name: "Typical Particle size"
@@ -360,7 +364,7 @@ sensor:
       filters:
         - exponential_moving_average:
             alpha: 0.1
-            send_every: 300
+            send_every: 60
             send_first_at: 1
     address: 0x69
     update_interval: 10s
