@@ -284,6 +284,7 @@ sensor:
     topic: esphome/devices/${name}/humidity/hysteresis
     state_class: "measurement"
     device_class: "humidity"
+    unit_of_measurement: "%"
     qos: 2
     on_value:
       - logger.log: "Humidity hysteresis adjusted."
@@ -300,7 +301,8 @@ sensor:
     name: "Humidity Setpoint"
     id: humid_setpoint
     device_class: "humidity"
-    state_class: "measurement"    
+    state_class: "measurement"
+    unit_of_measurement: "%"
     topic: esphome/devices/${name}/humidity/setpoint
     qos: 2
     on_value:
@@ -319,9 +321,9 @@ sensor:
     name: "Adjusted Humidity Setpoint"
     internal: false
     icon: "mdi:water-percent-alert"
+    unit_of_measurement: "%"
     device_class: "humidity"
     state_class: "measurement"
-    unit_of_measurement: "%"
 
   - platform: mqtt_subscribe
     name: "Window R-Value"
@@ -632,7 +634,11 @@ script:
             ESP_LOGD("lambda", "indoor_temp_c set to: %f", indoor_temp_c);
             ESP_LOGD("lambda", "outdoor_temp_c set to: %f", outdoor_temp_c);
             ESP_LOGD("lambda", "r_val set to: %f", r_val);
-            if( id(avoid_condensation).state == true) {      
+
+            if( isnan(indoor_temp_c) || isnan(outdoor_temp_c) ) {
+                id(humid_setpoint_adjusted).publish_state(0.0);
+                ESP_LOGE("lambda", "indoor_temp_c and/or outdoor_temp_c is NaN. Throttled to 0.");
+            } else if( id(avoid_condensation).state == true) {      
 
               int humid_limit;
 
