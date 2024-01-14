@@ -166,10 +166,27 @@ sensor:
       - delta: 5.0
     accuracy_decimals: 0
 
-  - platform: homeassistant
-    id: basement_pm25_24hr
-    internal: true
-    entity_id: sensor.basement_pm25_24_hrs
+  - platform: template
+    name: "PM2_5 24 Hr Moving Average"
+    id: basement_pm2_5_24hr
+    internal: false
+    filters:
+      - exponential_moving_average:
+          alpha: 0.2
+          send_every: 8640 # Once a day at 10s intervals
+          send_first_at: 30
+    update_interval: 10s
+
+  - platform: template
+    name: "PM10 24 Hr Moving Average"
+    id: basement_pm10_24hr
+    internal: false
+    filters:
+      - exponential_moving_average:
+          alpha: 0.2
+          send_every: 8640 # Once a day at 10s intervals
+          send_first_at: 30
+    update_interval: 10s
 
 # #########################################
   - platform: bme680
@@ -271,6 +288,9 @@ sensor:
       id: "pm_2_5"
       expire_after: 8h
       force_update: true
+      on_raw_value:
+        then:
+          - lambda: !lambda "id(basement_pm2_5_24hr).publish_state(x);"
       filters:
         - exponential_moving_average:
             alpha: 0.1
@@ -291,6 +311,9 @@ sensor:
       id: "pm_10_0"
       expire_after: 8h
       force_update: true
+      on_raw_value:
+        then:
+          - lambda: !lambda "id(basement_pm10_24hr).publish_state(x);"      
       filters:
         - exponential_moving_average:
             alpha: 0.1
@@ -394,11 +417,26 @@ text_sensor:
     name: "PM25 Limits"
     icon: "mdi:virus"
     lambda: |-
-      if (int(id(pm_2_5).state) < 5 && int(id(basement_pm25_24hr).state) < 15) {
-        return {"Ok"};
+      if (int(id(basement_pm2_5_24hr).state) <= 12) {
+        return {"Safe"};
       }
-      else if (int(id(pm_2_5).state) >= 5 || int(id(basement_pm25_24hr).state) >= 15) {
-        return {"Warning!"};
+      else if (int(id(basement_pm2_5_24hr).state) <= 35.4) {
+        return {"Marginally Unsafe"};
+      }
+      else if (int(id(basement_pm2_5_24hr).state) <= 55.4) {
+        return {"Moderately Unsafe"};
+      }
+      else if (int(id(basement_pm2_5_24hr).state) <= 150.4) {
+        return {"Hazardous"};
+      }
+      else if (int(id(basement_pm2_5_24hr).state) <= 250.4) {
+        return {"Very Hazardous"};
+      }
+      else if (int(id(basement_pm2_5_24hr).state) <= 500) {
+        return {"Extremely Hazardous"};
+      }
+      else if (int(id(basement_pm2_5_24hr).state) > 500) {
+        return {"Toxic"};
       }
       else {
         return {"unknown"};
@@ -408,11 +446,26 @@ text_sensor:
     name: "PM10 Limits"
     icon: "mdi:virus"
     lambda: |-
-      if (int(id(pm_10_0).state) < 54) {
-        return {"Ok"};
+      if (int(id(basement_pm10_24hr).state) <= 54) {
+        return {"Safe"};
       }
-      else if (int(id(pm_10_0).state) >= 54) {
-        return {"Warning!"};
+      else if (int(id(basement_pm10_24hr).state) <= 154) {
+        return {"Marginally Unsafe"};
+      }
+      else if (int(id(basement_pm10_24hr).state) <= 254) {
+        return {"Moderately Unsafe"};
+      }
+      else if (int(id(basement_pm10_24hr).state) <= 354) {
+        return {"Hazardous"};
+      }
+      else if (int(id(basement_pm10_24hr).state) <= 424) {
+        return {"Very Hazardous"};
+      }
+      else if (int(id(basement_pm10_24hr).state) <= 604) {
+        return {"Extremely Hazardous"};
+      }
+      else if (int(id(basement_pm10_24hr).state) > 604) {
+        return {"Toxic"};
       }
       else {
         return {"unknown"};
