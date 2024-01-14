@@ -431,7 +431,7 @@ text_sensor:
 
   - platform: template
     name: "PM25 Limits"
-    icon: "mdi:virus"
+    icon: "mdi:weather-dust"
     lambda: |-
       if (int(id(basement_pm2_5_24hr).state) <= 12) {
         return {"Safe"};
@@ -460,7 +460,7 @@ text_sensor:
 
   - platform: template
     name: "PM10 Limits"
-    icon: "mdi:virus"
+    icon: "mdi:weather-dust"
     lambda: |-
       if (int(id(basement_pm10_24hr).state) <= 54) {
         return {"Safe"};
@@ -518,7 +518,7 @@ text_sensor:
 
   - platform: template
     name: "CO₂ Exposure Classification"
-    icon: "mdi:checkbox-marked-circle-outline"
+    icon: "mdi:molecule-co2"
     lambda: |-
       if (int(id(co2).state) <= 400) {
         return {"Excellent"};
