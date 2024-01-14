@@ -128,7 +128,7 @@ sensor:
       force_update: true
       expire_after: 60min
       filters:
-        - offset: -2.0
+        - offset: -4.5
         - exponential_moving_average:
             alpha: 0.1
             send_every: 300
@@ -149,6 +149,7 @@ sensor:
       force_update: true
       expire_after: 60min
       filters:
+        - offset: 2.0
         - exponential_moving_average:
             alpha: 0.1
             send_every: 300
