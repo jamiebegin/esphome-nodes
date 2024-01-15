@@ -119,14 +119,14 @@ switch:
     name: "Require Furnace Heat Mode"
     optimistic: true
     icon: "mdi:heat-wave"
-    restore_mode: "RESTORE_DEFAULT_ON"
+    restore_mode: "ALWAYS_ON"
 
   - platform: template
     id: avoid_condensation
     name: "Avoid Window Condensation"
     optimistic: true
     icon: "mdi:snowflake-melt"
-    restore_mode: "RESTORE_DEFAULT_ON"
+    restore_mode: "ALWAYS_ON"
     on_turn_on:
       - logger.log: "Avoid Window Condensation ON"
       - script.execute:
