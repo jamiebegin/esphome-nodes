@@ -64,11 +64,18 @@ logger:
             payload: !lambda |-
               return "Triggered on_message with level " + to_string(level) + ", tag " + tag + " and message " + message;
 
+# #######################################
+debug:
+  update_interval: 5s
+
 api:
-  id: api_server  
 
 ota:
 # #######################################
+
+i2c:
+  scan: True
+  id: bus_b
 
 switch:
   - platform: restart
@@ -91,24 +98,33 @@ binary_sensor:
   - platform: status
     name: "Status"
 
-i2c:
-  scan: True
-  id: bus_b
-
 sensor:
   - platform: wifi_signal
+    id: wifi_signal_dbm
     name: "Wifi Signal"
     update_interval: 1min
     force_update: true
     expire_after: 60min
     filters:
-      - median:
-          window_size: 241
-          send_every: 60
+      - exponential_moving_average:
+          alpha: 0.1
+          send_every: 240
           send_first_at: 1
-
   - platform: uptime
-    name: "Uptime"
+    name: Uptime
+    expire_after: 15min
+  - platform: debug
+    free:
+      name: "Heap Free"
+    block:
+      name: "Heap Max Block"
+    loop_time:
+      name: "Loop Time"
+      filters:
+        - max:
+            window_size: 12
+            send_every: 6
+            send_first_at: 3    
 
   - platform: homeassistant
     id: office_pm25_24hr
@@ -119,9 +135,9 @@ sensor:
     temperature:
       name: "Temperature"
       id: temp
-      expire_after: 8h
-      oversampling: 16x
-      unit_of_measurement: "°C"
+      oversampling: 8x
+      force_update: true
+      expire_after: 60min      
       filters:
         - exponential_moving_average:
             alpha: 0.1
@@ -130,7 +146,9 @@ sensor:
     pressure:
       name: "Pressure"
       id: pressure
-      expire_after: 8h
+      force_update: true
+      expire_after: 60min
+      oversampling: 8x
       filters:
         - exponential_moving_average:
             alpha: 0.1
@@ -139,13 +157,16 @@ sensor:
     humidity:
       name: "Humidity"
       id: humid
-      expire_after: 8h
+      force_update: true
+      expire_after: 60min
+      oversampling: 8x
       filters:
         - exponential_moving_average:
             alpha: 0.1
             send_every: 300
             send_first_at: 1
     address: 0x77
+    iir_filter: 16x
     update_interval: 1s
 
   - platform: sgp30
@@ -155,8 +176,8 @@ sensor:
       accuracy_decimals: 1
       expire_after: 8h
       filters:
-        - median:
-            window_size: 601
+        - exponential_moving_average:
+            alpha: 0.1
             send_every: 300
             send_first_at: 1
     tvoc:
@@ -164,8 +185,8 @@ sensor:
       accuracy_decimals: 1
       expire_after: 8h
       filters:
-        - median:
-            window_size: 601
+        - exponential_moving_average:
+            alpha: 0.1
             send_every: 300
             send_first_at: 1
     address: 0x58
@@ -182,9 +203,9 @@ sensor:
       expire_after: 8h
       force_update: true
       filters:
-        - median:
-            window_size: 601
-            send_every: 300
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 60
             send_first_at: 1
     pm_2_5:
       name: "PM <2.5µm Weight concentration"
@@ -192,9 +213,9 @@ sensor:
       expire_after: 8h
       force_update: true
       filters:
-        - median:
-            window_size: 601
-            send_every: 300
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 60
             send_first_at: 1
     pm_4_0:
       name: "PM <4µm Weight concentration"
@@ -202,9 +223,9 @@ sensor:
       expire_after: 8h
       force_update: true
       filters:
-        - median:
-            window_size: 601
-            send_every: 300
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 60
             send_first_at: 1
     pm_10_0:
       name: "PM <10µm Weight concentration"
@@ -212,9 +233,9 @@ sensor:
       expire_after: 8h
       force_update: true
       filters:
-        - median:
-            window_size: 601
-            send_every: 300
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 60
             send_first_at: 1
     pmc_0_5:
       name: "PM <0.5µm Number concentration"
@@ -224,9 +245,9 @@ sensor:
       force_update: true
       state_class: "measurement"
       filters:
-        - median:
-            window_size: 601
-            send_every: 300
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 60
             send_first_at: 1
     pmc_1_0:
       name: "PM <1µm Number concentration"
@@ -236,9 +257,9 @@ sensor:
       force_update: true
       state_class: "measurement"
       filters:
-        - median:
-            window_size: 601
-            send_every: 300
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 60
             send_first_at: 1
     pmc_2_5:
       name: "PM <2.5µm Number concentration"
@@ -248,9 +269,9 @@ sensor:
       force_update: true
       state_class: "measurement"
       filters:
-        - median:
-            window_size: 601
-            send_every: 300
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 60
             send_first_at: 1
     pmc_4_0:
       name: "PM <4µm Number concentration"
@@ -260,9 +281,9 @@ sensor:
       force_update: true
       state_class: "measurement"
       filters:
-        - median:
-            window_size: 601
-            send_every: 300
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 60
             send_first_at: 1
     pmc_10_0:
       name: "PM <10µm Number concentration"
@@ -272,9 +293,9 @@ sensor:
       force_update: true
       state_class: "measurement"
       filters:
-        - median:
-            window_size: 601
-            send_every: 300
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 60
             send_first_at: 1
     pm_size:
       name: "Typical Particle size"
@@ -282,9 +303,9 @@ sensor:
       expire_after: 8h
       force_update: true
       filters:
-        - median:
-            window_size: 601
-            send_every: 300
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 60
             send_first_at: 1
     address: 0x69
     update_interval: 10s
@@ -293,6 +314,12 @@ text_sensor:
   - platform: version
     name: "ESPHome Version"
     icon: "mdi:chip"
+
+  - platform: debug
+    device:
+      name: "Device Info"
+    reset_reason:
+      name: "Reset Reason"
 
   - platform: template
     name: "PM25 Limits"
@@ -320,3 +347,32 @@ text_sensor:
       else {
         return {"unknown"};
       }
+
+  - platform: template
+    name: "WiFi Signal Quality"
+    icon: "mdi:wifi-star"
+    lambda: |-
+      if (int(id(wifi_signal_dbm).state) >= -30) {
+        return {"Perfect"};
+      }
+      else if (int(id(wifi_signal_dbm).state) >= -50) {
+        return {"Excellent"};
+      }
+      else if (int(id(wifi_signal_dbm).state) >= -60) {
+        return {"Good"};
+      }
+      else if (int(id(wifi_signal_dbm).state) >= -67) {
+        return {"Marginal"};
+      }
+      else if (int(id(wifi_signal_dbm).state) >= -70) {
+        return {"Poor"};
+      }
+      else if (int(id(wifi_signal_dbm).state) >= -80) {
+        return {"Unstable"};
+      }  
+      else if (int(id(wifi_signal_dbm).state) >= -90) {
+        return {"Unusable"};
+      }
+      else {
+        return {"unknown"};
+      }      

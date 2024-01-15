@@ -1,6 +1,7 @@
 substitutions:
   name: esp-dining-room-env
   friendly_name: "Dining Room Env"
+  area: "Dining Room"
   ip_addr: 192.168.5.112
   board: nodemcuv2
 
@@ -8,6 +9,7 @@ esphome:
   name: ${name}
   friendly_name: ${friendly_name}
   name_add_mac_suffix: false
+  area: ${area}
   board: ${board}
   platform: ESP8266
 
@@ -44,8 +46,28 @@ mqtt:
     payload: offline  
 
 # #######################################
-logger:
+debug:
+  update_interval: 5s
 
+logger:
+  level: debug
+  on_message:
+    - level: ERROR
+      then:
+        - mqtt.publish:
+            retain: false
+            qos: 1
+            topic: esphome/device_logs/${name}/error
+            payload: !lambda |-
+              return "Triggered on_message with level " + to_string(level) + ", tag " + tag + " and message " + message;
+    - level: WARN
+      then:
+        - mqtt.publish:
+            retain: false
+            qos: 1          
+            topic: esphome/device_logs/${name}/warning
+            payload: !lambda |-
+              return "Triggered on_message with level " + to_string(level) + ", tag " + tag + " and message " + message;
 api:
 
 ota:
@@ -70,42 +92,50 @@ button:
     name: "Safe Mode Boot"
     entity_category: diagnostic
 
-text_sensor:
-  - platform: version
-    name: "ESPHome Version"
-    icon: "mdi:chip"
-
 sensor:
-  - platform: uptime
-    name: Uptime
-    expire_after: 30min
-
   - platform: wifi_signal
+    id: wifi_signal_dbm
     name: "Wifi Signal"
     update_interval: 1min
     force_update: true
     expire_after: 60min
     filters:
-      - median:
-          window_size: 241
-          send_every: 60
+      - exponential_moving_average:
+          alpha: 0.1
+          send_every: 240
           send_first_at: 1
+  - platform: uptime
+    name: Uptime
+    expire_after: 15min
+  - platform: debug
+    free:
+      name: "Heap Free"
+    block:
+      name: "Heap Max Block"
+    loop_time:
+      name: "Loop Time"
+      filters:
+        - max:
+            window_size: 12
+            send_every: 6
+            send_first_at: 3
 
   - platform: bme280
     temperature:
       name: "Temperature"
       id: temp
-      oversampling: 16x  
+      oversampling: 8x  
       force_update: true
       expire_after: 60min
       filters:
+        - offset: -4.5
         - exponential_moving_average:
             alpha: 0.1
             send_every: 300
-            send_first_at: 1         
+            send_first_at: 1
     pressure:
       name: "Pressure"
-      oversampling: 16x  
+      oversampling: 8x  
       force_update: true
       expire_after: 60min
       filters:
@@ -115,13 +145,55 @@ sensor:
             send_first_at: 1     
     humidity:
       name: "Humidity"
-      oversampling: 16x      
+      oversampling: 8x      
       force_update: true
       expire_after: 60min
       filters:
+        - offset: 2.0
         - exponential_moving_average:
             alpha: 0.1
             send_every: 300
             send_first_at: 1        
     address: 0x77
+    iir_filter: 16x
     update_interval: 1s
+
+text_sensor:
+  - platform: version
+    name: "ESPHome Version"
+    icon: "mdi:chip"
+
+  - platform: debug
+    device:
+      name: "Device Info"
+    reset_reason:
+      name: "Reset Reason"
+
+  - platform: template
+    name: "WiFi Signal Quality"
+    icon: "mdi:wifi-star"
+    lambda: |-
+      if (int(id(wifi_signal_dbm).state) >= -30) {
+        return {"Perfect"};
+      }
+      else if (int(id(wifi_signal_dbm).state) >= -50) {
+        return {"Excellent"};
+      }
+      else if (int(id(wifi_signal_dbm).state) >= -60) {
+        return {"Good"};
+      }
+      else if (int(id(wifi_signal_dbm).state) >= -67) {
+        return {"Marginal"};
+      }
+      else if (int(id(wifi_signal_dbm).state) >= -70) {
+        return {"Poor"};
+      }
+      else if (int(id(wifi_signal_dbm).state) >= -80) {
+        return {"Unstable"};
+      }  
+      else if (int(id(wifi_signal_dbm).state) >= -90) {
+        return {"Unusable"};
+      }
+      else {
+        return {"unknown"};
+      }     

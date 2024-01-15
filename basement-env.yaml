@@ -104,19 +104,19 @@ i2c:
 
 sensor:
   - platform: wifi_signal
+    id: wifi_signal_dbm
     name: "Wifi Signal"
     update_interval: 1min
     force_update: true
     expire_after: 60min
     filters:
-      - median:
-          window_size: 241
-          send_every: 60
+      - exponential_moving_average:
+          alpha: 0.1
+          send_every: 240
           send_first_at: 1
-
   - platform: uptime
-    name: "Uptime"
-
+    name: Uptime
+    expire_after: 15min
   - platform: debug
     free:
       name: "Heap Free"
@@ -124,25 +124,77 @@ sensor:
       name: "Heap Max Block"
     loop_time:
       name: "Loop Time"
+      filters:
+        - max:
+            window_size: 12
+            send_every: 6
+            send_first_at: 3
 
-  # 3.7V lithium cell
+  # 3.7V lithium cell discharge curve
   - platform: adc
     pin: A13
     name: "Battery Level"
-    icon: "mdi:battery"
+    #icon: "mdi:battery"
     unit_of_measurement: "%"
-    attenuation: 11db
-    update_interval: 60s
+    state_class: "measurement"
+    device_class: "battery"
+    expire_after: 60s
+    attenuation: auto
+    update_interval: 1s
     filters:
-      - lambda: !lambda "return (3.7 / (x * 2.0))*100;"
+      - multiply: 2.07 # convert measured V to actual battery V
+      - calibrate_polynomial:
+         degree: 3
+         datapoints:        
+          - 4.2820 -> 98.9204
+          - 4.0564 -> 96.6262
+          - 3.9041 -> 92.0378
+          - 3.8026 -> 83.9406
+          - 3.7519 -> 74.4939
+          - 3.7293 -> 66.9366
+          - 3.7180 -> 54.2510
+          - 3.7179 -> 35.0877
+          - 3.7177 -> 14.8448
+          - 3.7174 -> 5.9379
+          - 3.6955 -> -3.5088
       - clamp:
-          max_value: 100.0
+          max_value: 100
+      - exponential_moving_average:
+          alpha: 0.5
+          send_every: 10
+          send_first_at: 1
+      - delta: 5.0
+    accuracy_decimals: 0
 
+  - platform: template
+    name: "PM2_5 24 Hr Moving Average"
+    id: basement_pm2_5_24hr
+    icon: "mdi:hours-24"
+    unit_of_measurement: "µg/m³"
+    state_class: "measurement"
+    device_class: "pm25"
+    expire_after: 5d 
+    filters:
+      - exponential_moving_average:
+          alpha: 0.2
+          send_every: 8640 # Once a day at 10s intervals
+          send_first_at: 30
+    update_interval: 10s
 
-  - platform: homeassistant
-    id: basement_pm25_24hr
-    internal: true
-    entity_id: sensor.basement_pm25_24_hrs
+  - platform: template
+    name: "PM10 24 Hr Moving Average"
+    id: basement_pm10_24hr
+    icon: "mdi:hours-24"
+    unit_of_measurement: "µg/m³"
+    state_class: "measurement"
+    device_class: "pm10"
+    expire_after: 5d 
+    filters:
+      - exponential_moving_average:
+          alpha: 0.2
+          send_every: 8640 # Once a day at 10s intervals
+          send_first_at: 30
+    update_interval: 10s
 
 # #########################################
   - platform: bme680
@@ -151,6 +203,7 @@ sensor:
       oversampling: 16x
       force_update: true
       expire_after: 60min
+      accuracy_decimals: 0
       filters:
         - exponential_moving_average:
             alpha: 0.1
@@ -170,6 +223,7 @@ sensor:
       name: "Humidity"
       force_update: true
       expire_after: 60min
+      accuracy_decimals: 0      
       filters:
         - exponential_moving_average:
             alpha: 0.1
@@ -198,7 +252,7 @@ sensor:
       filters:
         - exponential_moving_average:
             alpha: 0.1
-            send_every: 300
+            send_every: 60
             send_first_at: 1   
     temperature:
       id: scd30_temp
@@ -209,7 +263,7 @@ sensor:
       filters:
         - exponential_moving_average:
             alpha: 0.1
-            send_every: 300
+            send_every: 60
             send_first_at: 1
     humidity:
       id: scd30_humid
@@ -220,7 +274,7 @@ sensor:
       filters:
         - exponential_moving_average:
             alpha: 0.1
-            send_every: 300
+            send_every: 60
             send_first_at: 1
     address: 0x61
     update_interval: 1s
@@ -230,42 +284,56 @@ sensor:
     pm_1_0:
       name: "PM <1µm Weight concentration"
       id: "pm_1_0"
+      unit_of_measurement: "µg/m³"
+      state_class: "measurement"
       expire_after: 8h
       force_update: true
       filters:
-        - median:
-            window_size: 601
-            send_every: 300
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 60
             send_first_at: 1
     pm_2_5:
       name: "PM <2.5µm Weight concentration"
       id: "pm_2_5"
+      unit_of_measurement: "µg/m³"
+      state_class: "measurement"      
       expire_after: 8h
       force_update: true
+      on_raw_value:
+        then:
+          - lambda: !lambda "id(basement_pm2_5_24hr).publish_state(x);"
       filters:
-        - median:
-            window_size: 601
-            send_every: 300
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 60
             send_first_at: 1
     pm_4_0:
       name: "PM <4µm Weight concentration"
       id: "pm_4_0"
+      unit_of_measurement: "µg/m³"
+      state_class: "measurement"      
       expire_after: 8h
       force_update: true
       filters:
-        - median:
-            window_size: 601
-            send_every: 300
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 60
             send_first_at: 1
     pm_10_0:
       name: "PM <10µm Weight concentration"
       id: "pm_10_0"
+      unit_of_measurement: "µg/m³"
+      state_class: "measurement"      
       expire_after: 8h
       force_update: true
+      on_raw_value:
+        then:
+          - lambda: !lambda "id(basement_pm10_24hr).publish_state(x);"      
       filters:
-        - median:
-            window_size: 601
-            send_every: 300
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 60
             send_first_at: 1
     pmc_0_5:
       name: "PM <0.5µm Number concentration"
@@ -275,9 +343,9 @@ sensor:
       force_update: true
       state_class: "measurement"
       filters:
-        - median:
-            window_size: 601
-            send_every: 300
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 60
             send_first_at: 1
     pmc_1_0:
       name: "PM <1µm Number concentration"
@@ -287,9 +355,9 @@ sensor:
       force_update: true
       state_class: "measurement"
       filters:
-        - median:
-            window_size: 601
-            send_every: 300
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 60
             send_first_at: 1
     pmc_2_5:
       name: "PM <2.5µm Number concentration"
@@ -299,9 +367,9 @@ sensor:
       force_update: true
       state_class: "measurement"
       filters:
-        - median:
-            window_size: 601
-            send_every: 300
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 60
             send_first_at: 1
     pmc_4_0:
       name: "PM <4µm Number concentration"
@@ -311,9 +379,9 @@ sensor:
       force_update: true
       state_class: "measurement"
       filters:
-        - median:
-            window_size: 601
-            send_every: 300
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 60
             send_first_at: 1
     pmc_10_0:
       name: "PM <10µm Number concentration"
@@ -323,9 +391,9 @@ sensor:
       force_update: true
       state_class: "measurement"
       filters:
-        - median:
-            window_size: 601
-            send_every: 300
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 60
             send_first_at: 1
     pm_size:
       name: "Typical Particle size"
@@ -333,12 +401,22 @@ sensor:
       expire_after: 8h
       force_update: true
       filters:
-        - median:
-            window_size: 601
-            send_every: 300
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 60
             send_first_at: 1
     address: 0x69
     update_interval: 10s
+
+  - platform: template
+    name: "Air Quality Index"
+    id: iaq
+    state_class: "measurement"
+    device_class: "aqi"
+    expire_after: 60min
+    # caulculation: comp_gas = log(R_gas[ohm]) + 0.04 log(Ohm)/%rh * hum[%rh]
+    lambda: |-
+      return log(id(gas_resistance).state) + 0.04 *  id(humidity).state;
 
 text_sensor:
   - platform: version
@@ -353,27 +431,142 @@ text_sensor:
 
   - platform: template
     name: "PM25 Limits"
-    icon: "mdi:virus"
+    icon: "mdi:weather-dust"
     lambda: |-
-      if (int(id(pm_2_5).state) < 5 && int(id(basement_pm25_24hr).state) < 15) {
-        return {"Ok"};
+      if (int(id(basement_pm2_5_24hr).state) <= 12) {
+        return {"Safe"};
       }
-      else if (int(id(pm_2_5).state) >= 5 || int(id(basement_pm25_24hr).state) >= 15) {
-        return {"Warning!"};
+      else if (int(id(basement_pm2_5_24hr).state) <= 35.4) {
+        return {"Marginally Unsafe"};
+      }
+      else if (int(id(basement_pm2_5_24hr).state) <= 55.4) {
+        return {"Moderately Unsafe"};
+      }
+      else if (int(id(basement_pm2_5_24hr).state) <= 150.4) {
+        return {"Hazardous"};
+      }
+      else if (int(id(basement_pm2_5_24hr).state) <= 250.4) {
+        return {"Very Hazardous"};
+      }
+      else if (int(id(basement_pm2_5_24hr).state) <= 500) {
+        return {"Extremely Hazardous"};
+      }
+      else if (int(id(basement_pm2_5_24hr).state) > 500) {
+        return {"Toxic!"};
       }
       else {
         return {"unknown"};
       }
+
   - platform: template
     name: "PM10 Limits"
-    icon: "mdi:virus"
+    icon: "mdi:weather-dust"
     lambda: |-
-      if (int(id(pm_10_0).state) < 54) {
-        return {"Ok"};
+      if (int(id(basement_pm10_24hr).state) <= 54) {
+        return {"Safe"};
       }
-      else if (int(id(pm_10_0).state) >= 54) {
-        return {"Warning!"};
+      else if (int(id(basement_pm10_24hr).state) <= 154) {
+        return {"Marginally Unsafe"};
+      }
+      else if (int(id(basement_pm10_24hr).state) <= 254) {
+        return {"Moderately Unsafe"};
+      }
+      else if (int(id(basement_pm10_24hr).state) <= 354) {
+        return {"Hazardous"};
+      }
+      else if (int(id(basement_pm10_24hr).state) <= 424) {
+        return {"Very Hazardous"};
+      }
+      else if (int(id(basement_pm10_24hr).state) <= 604) {
+        return {"Extremely Hazardous"};
+      }
+      else if (int(id(basement_pm10_24hr).state) > 604) {
+        return {"Toxic!"};
       }
       else {
         return {"unknown"};
       }
+
+  - platform: template
+    name: "IAQ Classification"
+    icon: "mdi:checkbox-marked-circle-outline"
+    lambda: |-
+      if (int(id(iaq).state) <= 50) {
+        return {"Excellent"};
+      }
+      else if (int(id(iaq).state) <= 100) {
+        return {"Good"};
+      }
+      else if (int(id(iaq).state) <= 150) {
+        return {"Lightly Polluted"};
+      }
+      else if (int(id(iaq).state) <= 200) {
+        return {"Moderately Polluted"};
+      }
+      else if (int(id(iaq).state) <= 250) {
+        return {"Heavily Polluted"};
+      }
+      else if (int(id(iaq).state) <= 350) {
+        return {"Severely Polluted"};
+      }
+      else if (int(id(iaq).state) <= 500) {
+        return {"Toxic!"};
+      }
+      else {
+        return {"unknown"};
+      }
+
+  - platform: template
+    name: "CO₂ Exposure Classification"
+    icon: "mdi:molecule-co2"
+    lambda: |-
+      if (int(id(co2).state) <= 400) {
+        return {"Excellent"};
+      }
+      else if (int(id(co2).state) <= 1000) {
+        return {"Good"};
+      }
+      else if (int(id(co2).state) <= 1500) {
+        return {"Borderline"};
+      }
+      else if (int(id(co2).state) <= 2000) {
+        return {"Poor"};
+      }
+      else if (int(id(co2).state) <= 5000) {
+        return {"Very Poor"};
+      }
+      else if (int(id(co2).state) > 5000) {
+        return {"Severe!"};
+      }
+      else {
+        return {"unknown"};
+      }
+
+  - platform: template
+    name: "WiFi Signal Quality"
+    icon: "mdi:wifi-star"
+    lambda: |-
+      if (int(id(wifi_signal_dbm).state) >= -30) {
+        return {"Perfect"};
+      }
+      else if (int(id(wifi_signal_dbm).state) >= -50) {
+        return {"Excellent"};
+      }
+      else if (int(id(wifi_signal_dbm).state) >= -60) {
+        return {"Good"};
+      }
+      else if (int(id(wifi_signal_dbm).state) >= -67) {
+        return {"Marginal"};
+      }
+      else if (int(id(wifi_signal_dbm).state) >= -70) {
+        return {"Poor"};
+      }
+      else if (int(id(wifi_signal_dbm).state) >= -80) {
+        return {"Unstable"};
+      }  
+      else if (int(id(wifi_signal_dbm).state) >= -90) {
+        return {"Unusable"};
+      }
+      else {
+        return {"unknown"};
+      }      
