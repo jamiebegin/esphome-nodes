@@ -8,9 +8,6 @@ esp32:
   board: featheresp32
   framework:
     type: arduino
-i2c:
-  scan: True
-  id: bus_b
 
 packages:
   basic: !include common/basic.yaml
