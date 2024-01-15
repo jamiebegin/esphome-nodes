@@ -3,40 +3,20 @@ substitutions:
   friendly_name: "Humidifier Control"
   area: "Basement"
   ip_addr: 192.168.5.111
-  board: featheresp32
 
 esphome:
-  name: ${name}
-  friendly_name: ${friendly_name}
-  name_add_mac_suffix: false
-  area: ${area}
   includes:
     - dewpoint.h
 
 esp32:
-  board: ${board}
+  board: featheresp32
   framework:
     type: arduino
 
+# Need to set the combined household humidity sensors to the value
+# of the family room at boot because it takes a while for the combined sensor
+# to settle in and emit values
 wifi:
-  ssid: !secret wifi_ssid
-  password: !secret wifi_pwd
-  fast_connect: False
-  reboot_timeout: 15min
-  domain: !secret domain
-  manual_ip:
-    static_ip: ${ip_addr}
-    gateway: !secret gateway
-    subnet: !secret subnet
-    dns1: !secret dns_server
-
-  ap:
-    ssid: "${name}"
-    password: !secret fallback_ap_pwd
-
-  # Need to set the combined household humidity sensors to the value
-  # of the family room at boot because it takes a while for the combined sensor
-  # to settle in and emit values
   on_connect:
     - text_sensor.template.publish:
         id: humidifier_status
@@ -45,65 +25,12 @@ wifi:
     - lambda: !lambda id(indoor_humid).publish_state(id(familyroom_humid).state);
     - lambda: !lambda id(indoor_temp).publish_state(id(familyroom_temp).state);
 
-time:
-  - platform: sntp
-    id: sntp_time
-    timezone: !secret timezone
-    servers: !secret ntp_server
-
-mqtt:
-  broker: !secret mqtt_broker
-  topic_prefix: esphome/devices/${name}
-  birth_message:
-    topic: esphome/availability/${name}
-    payload: online
-  will_message:
-    topic: esphome/availability/${name}
-    payload: offline  
-
-# #######################################
-debug:
-  update_interval: 5s
-
-logger:
-  on_message:
-    - level: ERROR
-      then:
-        - mqtt.publish:
-            retain: false
-            qos: 1
-            topic: esphome/device_logs/${name}/error
-            payload: !lambda |-
-              return "Triggered on_message with level " + to_string(level) + ", tag " + tag + " and message " + message;
-    - level: WARN
-      then:
-        - mqtt.publish:
-            retain: false
-            qos: 1          
-            topic: esphome/device_logs/${name}/warning
-            payload: !lambda |-
-              return "Triggered on_message with level " + to_string(level) + ", tag " + tag + " and message " + message;
-
-api:
-
-ota:
-
-# #######################################
-
-###############################
-
 i2c:
   scan: True
   id: bus_a
 
 # ######### Switches & Buttons  ##########
 switch:
-  - platform: restart
-    name: "Restart Controller"
-  - platform: shutdown
-    name: "Shutdown Controller"
-    id: shutdown_controller
-
   - platform: template
     id: fan_mode_on
     internal: true
@@ -167,10 +94,6 @@ switch:
       - logger.log: "HUMIDIFIER STEAM OFF"
 
 button:
-  - platform: safe_mode
-    name: "Safe Mode Boot"
-    entity_category: diagnostic
-
   - platform: template
     id: toggle_steam
     name: "Toggle Steam"
@@ -243,41 +166,11 @@ button:
 
 # ######### Sensors ##########
 binary_sensor:
-  - platform: status
-    name: "Controller Status"
-
   - platform: template
     id: heat_mode_satisfied
     internal: true
 
 sensor:
-  - platform: wifi_signal
-    id: wifi_signal_dbm
-    name: "Wifi Signal"
-    update_interval: 1min
-    force_update: true
-    expire_after: 60min
-    filters:
-      - exponential_moving_average:
-          alpha: 0.1
-          send_every: 240
-          send_first_at: 1
-  - platform: uptime
-    name: Uptime
-    expire_after: 15min
-  - platform: debug
-    free:
-      name: "Heap Free"
-    block:
-      name: "Heap Max Block"
-    loop_time:
-      name: "Loop Time"
-      filters:
-        - max:
-            window_size: 12
-            send_every: 6
-            send_first_at: 3
-
   - platform: mqtt_subscribe
     name: "Humidity Hysteresis"
     id: humid_hysteresis
@@ -367,11 +260,6 @@ sensor:
     id: diningroom_humid
     entity_id: sensor.esp_dining_room_env_humidity
 
-# ##########################################
-
-
-
- 
 #####################################################
   # combine temperature readings throughout the house
   - platform: kalman_combinator
@@ -432,70 +320,7 @@ sensor:
       - round: 0
       - lambda: !lambda "return int(x);"
 
-  - platform: bme680
-    temperature:
-      name: "Temperature"
-      oversampling: 16x
-      force_update: true
-      expire_after: 60min
-      filters:
-        - exponential_moving_average:
-            alpha: 0.1
-            send_every: 300
-            send_first_at: 1   
-    pressure:
-      name: "Pressure"
-      force_update: true
-      expire_after: 60min
-      filters:
-        - exponential_moving_average:
-            alpha: 0.1
-            send_every: 300
-            send_first_at: 1 
-    humidity:
-      id: "humidity"
-      name: "Humidity"
-      force_update: true
-      expire_after: 60min
-      filters:
-        - exponential_moving_average:
-            alpha: 0.1
-            send_every: 300
-            send_first_at: 1
-    gas_resistance:
-      id: "gas_resistance"
-      name: "Gas Resistance"
-      force_update: true
-      expire_after: 60min
-      filters:
-        - exponential_moving_average:
-            alpha: 0.1
-            send_every: 300
-            send_first_at: 1  
-    address: 0x77
-    update_interval: 1s
-
-  - platform: template
-    name: "BME680 Indoor Air Quality"
-    id: iaq
-    icon: "mdi:gauge"
-    state_class: "measurement"
-    expire_after: 60min
-    # caulculation: comp_gas = log(R_gas[ohm]) + 0.04 log(Ohm)/%rh * hum[%rh]
-    lambda: |-
-      return log(id(gas_resistance).state) + 0.04 * id(humidity).state;
-
 text_sensor:
-  - platform: version
-    name: "ESPHome Version"
-    icon: "mdi:chip"
-
-  - platform: debug
-    device:
-      name: "Device Info"
-    reset_reason:
-      name: "Reset Reason"
-
   - platform: template
     name: "Humidifer Status"
     id: humidifier_status
@@ -525,64 +350,6 @@ text_sensor:
             } else {
               id(heat_mode_satisfied).publish_state(false);
             }
-
-  - platform: template
-    name: "IAQ Classification"
-    icon: "mdi:checkbox-marked-circle-outline"
-    lambda: |-
-      if (int(id(iaq).state) <= 50) {
-        return {"Excellent"};
-      }
-      else if (int(id(iaq).state) <= 100) {
-        return {"Good"};
-      }
-      else if (int(id(iaq).state) <= 150) {
-        return {"Lightly polluted"};
-      }
-      else if (int(id(iaq).state) <= 200) {
-        return {"Moderately polluted"};
-      }
-      else if (int(id(iaq).state) <= 250) {
-        return {"Heavily polluted"};
-      }
-      else if (int(id(iaq).state) <= 350) {
-        return {"Severely polluted"};
-      }
-      else if (int(id(iaq).state) <= 500) {
-        return {"Extremely polluted"};
-      }
-      else {
-        return {"unknown"};
-      }
-
-  - platform: template
-    name: "WiFi Signal Quality"
-    icon: "mdi:wifi-star"
-    lambda: |-
-      if (int(id(wifi_signal_dbm).state) >= -30) {
-        return {"Perfect"};
-      }
-      else if (int(id(wifi_signal_dbm).state) >= -50) {
-        return {"Excellent"};
-      }
-      else if (int(id(wifi_signal_dbm).state) >= -60) {
-        return {"Good"};
-      }
-      else if (int(id(wifi_signal_dbm).state) >= -67) {
-        return {"Marginal"};
-      }
-      else if (int(id(wifi_signal_dbm).state) >= -70) {
-        return {"Poor"};
-      }
-      else if (int(id(wifi_signal_dbm).state) >= -80) {
-        return {"Unstable"};
-      }  
-      else if (int(id(wifi_signal_dbm).state) >= -90) {
-        return {"Unusable"};
-      }
-      else {
-        return {"unknown"};
-      }
 
 script:
   - id: eval_humid
@@ -665,3 +432,7 @@ script:
               ESP_LOGD("lambda", "UNTHROTTLED humid_max_throttled");
               id(humid_setpoint_adjusted).publish_state(int(id(humid_setpoint).state));
             }
+
+packages:
+  basic: !include common/basic.yaml
+  bme680: !include common/bme680.yaml
