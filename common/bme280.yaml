@@ -1,0 +1,41 @@
+i2c:
+  scan: True
+  id: bus_a
+  
+sensor:
+  - platform: bme280
+    temperature:
+      name: "Temperature"
+      id: temp
+      oversampling: 8x  
+      force_update: true
+      expire_after: 60min
+      filters:
+        - offset: -2.0
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 300
+            send_first_at: 1
+    pressure:
+      name: "Pressure"
+      oversampling: 8x  
+      force_update: true
+      expire_after: 60min
+      filters:
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 300
+            send_first_at: 1     
+    humidity:
+      name: "Humidity"
+      oversampling: 8x      
+      force_update: true
+      expire_after: 60min
+      filters:
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 300
+            send_first_at: 1        
+    address: 0x77
+    iir_filter: 16x
+    update_interval: 1s
