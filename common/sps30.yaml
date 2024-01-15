@@ -2,6 +2,12 @@ i2c:
   scan: True
   id: bus_a
   
+button:
+  - platform: template
+    name: "Clean Sensor"
+    on_press:
+      then:
+        - sps30.start_fan_autoclean: sps30_pm
 sensor:
   - platform: sps30
     id: sps30_pm
