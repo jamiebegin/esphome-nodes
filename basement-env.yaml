@@ -3,6 +3,7 @@ substitutions:
   area: "Basement"
   friendly_name: "Basement Env Sensors"
   ip_addr: 192.168.5.114
+  bme680_temperature_offset: -1.0
 
 esp32:
   board: featheresp32

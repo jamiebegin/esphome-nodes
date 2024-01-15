@@ -3,6 +3,7 @@ substitutions:
   area: "Family Room"
   friendly_name: "Family Room Env Sensors"
   ip_addr: 192.168.5.110
+  bme680_temperature_offset: -1.5
 
 esp32:
   board: featheresp32
