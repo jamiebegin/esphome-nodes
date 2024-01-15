@@ -25,10 +25,6 @@ wifi:
     - lambda: !lambda id(indoor_humid).publish_state(id(familyroom_humid).state);
     - lambda: !lambda id(indoor_temp).publish_state(id(familyroom_temp).state);
 
-i2c:
-  scan: True
-  id: bus_a
-
 # ######### Switches & Buttons  ##########
 switch:
   - platform: template

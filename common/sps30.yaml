@@ -1,3 +1,7 @@
+i2c:
+  scan: True
+  id: bus_a
+  
 sensor:
   - platform: sps30
     id: sps30_pm
