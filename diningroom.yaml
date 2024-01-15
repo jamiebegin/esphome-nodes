@@ -10,4 +10,4 @@ esphome:
 
 packages:
   basic: !include common/basic.yaml
-  bme680: !include common/bme680.yaml
+  bme680: !include common/bme280.yaml
