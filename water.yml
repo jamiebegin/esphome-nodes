@@ -1,82 +1,15 @@
 substitutions:
   name: esp32-water
   friendly_name: "Water Systems"
+  area: "Laundry"
   ip_addr: 192.168.5.239
-  board: featheresp32
-  platform: ESP32
-
-esphome:
-  name: ${name}
-  friendly_name: ${friendly_name}
-  name_add_mac_suffix: false
 
 esp32:
-  board: ${board}
+  board: featheresp32
   framework:
     type: arduino
 
-wifi:
-  ssid: !secret wifi_ssid
-  password: !secret wifi_pwd
-  fast_connect: False
-  reboot_timeout: 15min
-  domain: !secret domain
-  manual_ip:
-    static_ip: ${ip_addr}
-    gateway: !secret gateway
-    subnet: !secret subnet
-    dns1: !secret dns_server
-    
-  # Enable fallback hotspot (captive portal) in case wifi connection fails
-  ap:
-    ssid: "Water Systems Fallback"
-    password: "E12bcaWpvNMD"
-
-time:
-  - platform: sntp
-    id: sntp_time
-    timezone: "America/Detroit"
-    servers: !secret ntp_server
-
-mqtt:
-  broker: !secret mqtt_broker
-  topic_prefix: esphome/devices/${name}
-  birth_message:
-    topic: esphome/availability/${name}
-    payload: online
-  will_message:
-    topic: esphome/availability/${name}
-    payload: offline
-
-# #######################################
-logger:
-
-api:
-  password: ""
-
-ota:
-  password: ""
-# #######################################
-    
-
-# ######### Sensors ##########
-
 sensor:
-  - platform: wifi_signal
-    name: "Wifi Signal"
-    update_interval: 1min
-    force_update: true
-    expire_after: 60min
-    filters:
-      - median:
-          window_size: 241
-          send_every: 60
-          send_first_at: 1
-          
-  - platform: uptime
-    name: "Uptime"
-    expire_after: 30min
-    
   - platform: ultrasonic
     trigger_pin: 13
     echo_pin: 27
@@ -84,19 +17,19 @@ sensor:
     # 40" tall
     id: brine_tank_primary
     unit_of_measurement : "%"
+    state_class: "measurement"
     icon: "mdi:cup-water"
     update_interval: 1min
     expire_after: 24h
     accuracy_decimals: 0
     force_update: true
     filters:
-      - lambda: return (( 43 - (x * 39.3701) )/40)*100;
+      - lambda: "return (( 43 - (x * 39.3701) )/40)*100;"
       - filter_out: nan
-      - median:
-          window_size: 960
+      - exponential_moving_average:
+          alpha: 0.2
           send_every: 480
           send_first_at: 1
-
 
   - platform: ultrasonic
     trigger_pin: 14
@@ -105,16 +38,17 @@ sensor:
     # 33" tall
     id: brine_tank_secondary
     unit_of_measurement : "%"
+    state_class: "measurement"
     icon: "mdi:cup-water"
     update_interval: 1min
     expire_after: 24h
     accuracy_decimals: 0
     force_update: true
     filters:
-      - lambda: return (( 36 - (x * 39.3701) )/33)*100;
+      - lambda: "return (( 36 - (x * 39.3701) )/33)*100;"
       - filter_out: nan
-      - median:
-          window_size: 960
+      - exponential_moving_average:
+          alpha: 0.2
           send_every: 480
           send_first_at: 1
           
@@ -123,19 +57,7 @@ sensor:
     id: injection_pump_mqtt
     topic: irrigation/injection_pump
 
-binary_sensor:
-  - platform: status
-    name: "Status"
-
-
-# ######### Switches ##########
-
 switch:
-  - platform: restart
-    name: "Restart"
-  - platform: shutdown
-    name: "Shutdown"
-    
   - platform: gpio
     pin: A0
     name: "Injection Pump Relay"
@@ -143,10 +65,5 @@ switch:
     inverted: no
     restore_mode: ALWAYS_OFF
 
-button:
-  - platform: safe_mode
-    name: "Safe Mode Boot"
-    entity_category: diagnostic
-    
-###############################
-
+packages:
+  basic: !include common/basic.yaml

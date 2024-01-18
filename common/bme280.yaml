@@ -10,8 +10,9 @@ sensor:
       oversampling: 8x  
       force_update: true
       expire_after: 60min
+      accuracy_decimals: 0
       filters:
-        - offset: -2.0
+        - offset: ${bme280_temperature_offset}
         - exponential_moving_average:
             alpha: 0.1
             send_every: 300
@@ -31,6 +32,7 @@ sensor:
       oversampling: 8x      
       force_update: true
       expire_after: 60min
+      accuracy_decimals: 0
       filters:
         - exponential_moving_average:
             alpha: 0.1

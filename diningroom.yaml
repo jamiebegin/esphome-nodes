@@ -3,6 +3,7 @@ substitutions:
   friendly_name: "Dining Room Env"
   area: "Dining Room"
   ip_addr: 192.168.5.112
+  bme280_temperature_offset: "-2.0"
 
 esphome:
   board: nodemcuv2

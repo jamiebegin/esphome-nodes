@@ -43,6 +43,7 @@ sensor:
       name: "Gas Resistance"
       force_update: true
       expire_after: 60min
+      accuracy_decimals: 0      
       filters:
         - exponential_moving_average:
             alpha: 0.1
