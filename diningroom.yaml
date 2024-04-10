@@ -2,11 +2,12 @@ substitutions:
   name: esp-dining-room-env
   friendly_name: "Dining Room Env"
   area: "Dining Room"
-  ip_addr: 192.168.5.112
+  ip_addr: 192.168.4.27
   bme280_temperature_offset: "-2.0"
+  board: "nodemcuv2"
 
 esphome:
-  board: nodemcuv2
+  board: ${board}
   platform: ESP8266
 
 packages:

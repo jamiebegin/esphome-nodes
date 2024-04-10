@@ -2,11 +2,12 @@ substitutions:
   name: esp32-office-env
   area: "Office"
   friendly_name: "Office Env"
-  ip_addr: 192.168.5.113
-  bme680_temperature_offset: "-1.0"
+  ip_addr: 192.168.4.25
+  bme680_temperature_offset: "-2.0"
+  board: "featheresp32"
 
 esp32:
-  board: featheresp32
+  board: ${board}
   framework:
     type: arduino
 

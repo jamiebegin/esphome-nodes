@@ -1,98 +1,24 @@
 substitutions:
   name: esp32-energy1
+  area: "Playroom"
   friendly_name: "Energy Monitor 1"
-  ip_addr: 192.168.5.209
-  board: nodemcu-32s
-  platform: ESP32
-
-esphome:
-  name: ${name}
-  friendly_name: ${friendly_name}
-  name_add_mac_suffix: false
+  ip_addr: 192.168.4.28
+  board: "nodemcu-32s"
 
 esp32:
   board: ${board}
   framework:
     type: arduino
 
-wifi:
-  ssid: !secret wifi_ssid
-  password: !secret wifi_pwd
-  fast_connect: False
-  reboot_timeout: 15min
-  domain: !secret domain
-  manual_ip:
-    static_ip: ${ip_addr}
-    gateway: !secret gateway
-    subnet: !secret subnet
-    dns1: !secret dns_server
+packages:
+  basic: !include common/basic.yaml
 
-  ap:
-    ssid: "Energy Fallback"
-    password: "E12bcaWpvNMD"
-
-time:
-  - platform: sntp
-    id: sntp_time
-    timezone: "America/Detroit"
-    servers: !secret ntp_server
-
-mqtt:
-  broker: !secret mqtt_broker
-  topic_prefix: esphome/devices/${name}
-  birth_message:
-    topic: esphome/availability/${name}
-    payload: online
-  will_message:
-    topic: esphome/availability/${name}
-    payload: offline  
-
-# #######################################
-logger:
-
-api:
-  password: ""
-
-ota:
-  password: ""
-# #######################################
-
-# ######### Switches ##########
-
-switch:
-  - platform: restart
-    name: "Restart"
-  - platform: shutdown
-    name: "Shutdown"
-
-# ######### Sensors ##########
-
-binary_sensor:
-  - platform: status
-    name: "Status"
-
-# Example configuration entry for split single phase meter
 spi:
   clk_pin: 18 #P18
   miso_pin: 19 #P19
   mosi_pin: 23  #P23
 
 sensor:
-  - platform: wifi_signal
-    name: "Wifi Signal"
-    update_interval: 1min
-    force_update: true
-    expire_after: 60min
-    filters:
-      - median:
-          window_size: 241
-          send_every: 60
-          send_first_at: 1
-
-  - platform: uptime
-    name: "Uptime"         
-    expire_after: 30min
-     
   - platform: atm90e32
     cs_pin: 5
     phase_a:

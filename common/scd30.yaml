@@ -61,7 +61,7 @@ text_sensor:
         return {"Very Poor"};
       }
       else if (int(id(co2).state) > 5000) {
-        return {"Severe!"};
+        return {"OSHA Limits Exceeded!"};
       }
       else {
         return {"unknown"};

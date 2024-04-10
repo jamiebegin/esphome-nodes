@@ -1,12 +1,13 @@
 substitutions:
   name: esp32-familyroom-env
   area: "Family Room"
-  friendly_name: "Family Room Env Sensors"
-  ip_addr: 192.168.5.110
+  friendly_name: "Family Room Env"
+  ip_addr: 192.168.4.23
   bme680_temperature_offset: "-1.5"
+  board: "featheresp32"
 
 esp32:
-  board: featheresp32
+  board: ${board}
   framework:
     type: arduino
 

@@ -2,19 +2,24 @@ substitutions:
   name: esp32-water
   friendly_name: "Water Systems"
   area: "Laundry"
-  ip_addr: 192.168.5.239
+  ip_addr: 192.168.4.21
+  board: "featheresp32"
 
 esp32:
-  board: featheresp32
+  board: ${board}
   framework:
     type: arduino
 
+packages:
+  basic: !include common/basic.yaml
+    
 sensor:
   - platform: ultrasonic
     trigger_pin: 13
     echo_pin: 27
     name: "Brine Tank Level (Primary)"
     # 40" tall
+    # Water level when salt is empty is 5"    
     id: brine_tank_primary
     unit_of_measurement : "%"
     state_class: "measurement"
@@ -22,20 +27,21 @@ sensor:
     update_interval: 1min
     expire_after: 24h
     accuracy_decimals: 0
-    force_update: true
     filters:
-      - lambda: "return (( 43 - (x * 39.3701) )/40)*100;"
+      - lambda: "return (( (43 - (2 * 5)) - (x * 39.3701) )/40)*100;"
       - filter_out: nan
-      - exponential_moving_average:
-          alpha: 0.2
-          send_every: 480
+      - quantile:
+          window_size: 480
+          send_every: 240
           send_first_at: 1
+          quantile: .9
 
   - platform: ultrasonic
     trigger_pin: 14
     echo_pin: 15
     name: "Brine Tank Level (Secondary)"
     # 33" tall
+    # Water level when salt is empty is 5"
     id: brine_tank_secondary
     unit_of_measurement : "%"
     state_class: "measurement"
@@ -43,14 +49,14 @@ sensor:
     update_interval: 1min
     expire_after: 24h
     accuracy_decimals: 0
-    force_update: true
     filters:
-      - lambda: "return (( 36 - (x * 39.3701) )/33)*100;"
+      - lambda: "return (( (36 - (2 * 5)) - (x * 39.3701) )/33)*100;"
       - filter_out: nan
-      - exponential_moving_average:
-          alpha: 0.2
-          send_every: 480
+      - quantile:
+          window_size: 480
+          send_every: 240
           send_first_at: 1
+          quantile: .9
           
   - platform: mqtt_subscribe
     name: "Injection Pump"
@@ -64,6 +70,3 @@ switch:
     id: injection_pump_relay
     inverted: no
     restore_mode: ALWAYS_OFF
-
-packages:
-  basic: !include common/basic.yaml

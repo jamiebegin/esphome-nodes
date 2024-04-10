@@ -1,0 +1,66 @@
+substitutions:
+  name: esp32-dryer
+  friendly_name: "Dryer"
+  area: "Laundry"
+  ip_addr: 192.168.5.28
+  board: "nodemcu-32s"
+
+esp32:
+  board: ${board}
+  framework:
+    type: arduino
+
+packages:
+  basic: !include common/basic.yaml
+
+esphome:
+  on_boot:
+    then:
+      - lambda: !lambda 'id(dryer_status).publish_state("idle");'
+
+binary_sensor:
+  - platform: gpio
+    id: water_detected
+    name: "Water Detected"
+    icon: "mdi:water-alert"
+    internal: false
+    device_class: "problem"
+    pin:
+      number: 36
+
+text_sensor:
+  - platform: template
+    name: "Dryer Status"
+    id: dryer_status
+    on_value:
+      then:
+          - if:
+              condition:
+                - lambda: 'return id(dryer_status).state == "complete";'
+              then:
+                - delay: 5min
+                - lambda: 'id(dryer_status).publish_state("idle");'
+
+sensor:
+  - platform: pulse_counter
+    pin: GPIO23
+    name: "Shake Rate"
+    id: shake
+    internal: false
+    update_interval: 60s
+    on_value:
+      then:
+          - if:
+              condition:
+                and:
+                  - lambda: 'return id(shake).state > 100;'
+                  - lambda: 'return id(dryer_status).state == "idle";'
+              then:
+                - lambda: !lambda 'id(dryer_status).publish_state("running");'
+          - if:
+              condition:
+                and:
+                  - lambda: 'return id(shake).state < 40;'
+                  - lambda: 'return id(dryer_status).state == "running";'
+              then:
+                - lambda: !lambda 'id(dryer_status).publish_state("complete");'

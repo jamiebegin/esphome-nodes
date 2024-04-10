@@ -1,0 +1,77 @@
+substitutions:
+  name: esp32-office-humidifer
+  friendly_name: "Office Humidifier"
+  area: "Office"
+  ip_addr: 192.168.4.33
+  board: "nodemcu-32s"
+
+esp32:
+  board: ${board}
+  framework:
+    type: arduino
+
+packages:
+  basic: !include common/basic.yaml
+
+esphome:
+  on_boot:
+    priority: 500
+    then:
+      - switch.turn_off: water_valve
+
+binary_sensor:
+  - platform: gpio
+    id: water_needed
+    name: "Water Needed"
+    internal: false
+    icon: "mdi:format-color-fill"
+    pin:
+      number: GPIO32
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    filters:
+      - delayed_off: 20ms
+    on_press:
+      then:
+        - switch.turn_on: water_valve
+    on_release:
+      then:
+        - switch.turn_off: water_valve
+        - delay: 10s
+        - sensor.integration.reset: total_water
+
+sensor:
+  - platform: pulse_counter
+    pin: GPIO4
+    id: flow_rate
+    internal: false
+    name: "Flow Rate"
+    state_class: "measurement"
+    unit_of_measurement: 'L/min'
+    update_interval: 60s
+    accuracy_decimals: 3    
+    filters:
+      - multiply: 0.00017361111
+
+  - platform: integration
+    name: "Volume Water Added"
+    id: total_water
+    sensor: flow_rate
+    time_unit: min
+    state_class: "measurement"
+    unit_of_measurement: 'liters'
+    icon: "mdi:water"
+    accuracy_decimals: 3
+
+switch:
+  - platform: gpio
+    id: water_valve
+    name: "Water Valve"
+    internal: true
+    pin:
+      number: GPIO33
+      inverted: false
+      mode:
+        output: true

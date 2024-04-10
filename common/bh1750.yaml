@@ -5,11 +5,13 @@ i2c:
 sensor:
   - platform: bh1750
     name: "Ambient Light"
+    id: bh1750_lux
     address: 0x23
     update_interval: 1s
-    expire_after: 1h 
+    expire_after: 1h
+    force_update: true
     filters:
       - exponential_moving_average:
           alpha: 0.2
-          send_every: 60
+          send_every: 120
           send_first_at: 1

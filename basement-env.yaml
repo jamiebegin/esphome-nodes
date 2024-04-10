@@ -2,11 +2,12 @@ substitutions:
   name: esp32-basement-env
   area: "Basement"
   friendly_name: "Basement Env"
-  ip_addr: 192.168.5.114
+  ip_addr: 192.168.4.24
   bme680_temperature_offset: "-1.0"
+  board: "featheresp32"
 
 esp32:
-  board: featheresp32
+  board: ${board}
   framework:
     type: arduino
 

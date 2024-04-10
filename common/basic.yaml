@@ -8,7 +8,7 @@ wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_pwd
   fast_connect: False
-  reboot_timeout: 15min
+  reboot_timeout: 2min
   domain: !secret domain
   manual_ip:
     static_ip: ${ip_addr}
@@ -70,6 +70,8 @@ switch:
     name: "Restart"
   - platform: shutdown
     name: "Shutdown"    
+  - platform: factory_reset
+    name: "Factory Reset"
 
 button:
   - platform: safe_mode
@@ -86,7 +88,7 @@ sensor:
     name: "Wifi Signal"
     update_interval: 1min
     force_update: true
-    expire_after: 8h
+    expire_after: 1h
     filters:
       - exponential_moving_average:
           alpha: 0.1
@@ -120,6 +122,33 @@ text_sensor:
       name: "Device Info"
     reset_reason:
       name: "Reset Reason"
+
+  - platform: wifi_info
+    ip_address:
+      name: "IP Address"
+      icon: "mdi:ip-network"
+    ssid:
+      name: "Connected SSID"
+      icon: "mdi:wifi-settings"
+    bssid:
+      name: "Connected BSSID"
+      icon: "mdi:bluetooth-settings"
+    mac_address:
+      name: "WiFi MAC Address"
+      icon: "mdi:lan"
+    scan_results:
+      name: "WiFi Scan Results"
+      icon: "mdi:wifi-arrow-left-right"
+    dns_address:
+      name: "DNS Address"
+      icon: "mdi:server-network"
+
+  - platform: template
+    name: "Board"
+    icon: "mdi:expansion-card"
+    update_interval: 5d
+    lambda: |-
+      return to_string("${board}");
 
   - platform: template
     name: "WiFi Signal Quality"

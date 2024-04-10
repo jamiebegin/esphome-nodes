@@ -5,17 +5,21 @@ i2c:
 sensor:
   - platform: bme680
     temperature:
+      id: "bme680_temp"
       name: "Temperature"
       oversampling: 16x
       force_update: true
       expire_after: 60min
-      accuracy_decimals: 0
+      accuracy_decimals: 1
+      unit_of_measurement: "°C"
+      device_class: "temperature"
+      state_class: "measurement"      
       filters:
         - offset: ${bme680_temperature_offset}
         - exponential_moving_average:
             alpha: 0.1
             send_every: 300
-            send_first_at: 1   
+            send_first_at: 1
     pressure:
       name: "Pressure"
       force_update: true
@@ -27,7 +31,7 @@ sensor:
             send_every: 300
             send_first_at: 1 
     humidity:
-      id: "humidity"
+      id: "bme680_humidity"
       name: "Humidity"
       force_update: true
       oversampling: 16x
@@ -38,6 +42,7 @@ sensor:
             alpha: 0.1
             send_every: 300
             send_first_at: 1
+
     gas_resistance:
       id: "gas_resistance"
       name: "Gas Resistance"
@@ -48,7 +53,8 @@ sensor:
         - exponential_moving_average:
             alpha: 0.1
             send_every: 300
-            send_first_at: 1  
+            send_first_at: 1
+        - lambda: !lambda "return int(x);"
     address: 0x77
     update_interval: 1s
     iir_filter: 31x
@@ -61,7 +67,12 @@ sensor:
     expire_after: 60min
     # caulculation: comp_gas = log(R_gas[ohm]) + 0.04 log(Ohm)/%rh * hum[%rh]
     lambda: |-
-      return log(id(gas_resistance).state) + 0.04 *  id(humidity).state;  
+      return log(id(gas_resistance).state) + 0.04 *  id(bme680_humidity).state;  
+
+  - platform: absolute_humidity
+    name: "Absolute Humidity"
+    temperature: bme680_temp
+    humidity: bme680_humidity
 
 text_sensor:
   - platform: template
