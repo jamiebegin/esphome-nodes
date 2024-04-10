@@ -1,0 +1,79 @@
+substitutions:
+  name: esp32-minisplit-office
+  area: "Office"
+  friendly_name: "Office Minisplit"
+  ip_addr: 192.168.4.32
+  board: "featheresp32"
+
+esp32:
+  board: ${board}
+  framework:
+    type: arduino
+
+esphome:
+  # Set platform options to use c++ 17 instead of 11
+  platformio_options:
+    build_unflags:
+      - "-std=gnu++11"
+    build_flags:
+      - "-std=gnu++17"
+
+packages:
+  basic: !include common/basic.yaml
+
+external_components:
+  - source: github://nathanjw/esphome-mitsubishiheatpump@unformat-select
+
+climate:
+  - platform: mitsubishi_heatpump
+    id: minisplit
+    name: "Office Minisplit"
+    hardware_uart: UART1
+    update_interval: 500ms
+    supports:
+      mode: [HEAT_COOL, COOL, HEAT, FAN_ONLY]
+      fan_mode: [AUTO, LOW, MEDIUM, HIGH]
+      swing_mode: ["OFF", VERTICAL, HORIZONTAL, BOTH]
+    visual:
+      temperature_step: 1.0    
+
+sensor:
+  - platform: homeassistant
+    id: office_env_temp_in_c
+    entity_id: sensor.esp32_office_env_temperature
+    filters:
+      - lambda: "return (x - 32.0) * (5.0/9.0);"
+    on_value:
+      then:
+        - lambda: 'id(minisplit).set_remote_temperature(x);'
+
+switch:
+  - platform: template
+    id: away_mode
+    name: "Away Mode"
+    optimistic: true
+    icon: "mdi:home-export-outline"
+    restore_mode: "ALWAYS_OFF"
+
+binary_sensor:
+  # Turn on heat mode if we hit a critically low temp. Guards against burst pipes
+  # and stuff if we accidently left the thermostat off.
+  - platform: template
+    id: critical_low_temp
+    internal: true
+    lambda: |-
+      if (id(office_env_temp_in_c).state < 4) {
+        return true;
+      } else {
+        return false;
+      }
+    on_state:
+      then:
+        - if:
+            condition:
+              lambda: 'return x;'
+            then:
+            - climate.control:
+                id: minisplit
+                mode: HEAT
+                target_temperature: 6°C

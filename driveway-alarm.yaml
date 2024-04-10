@@ -1,0 +1,25 @@
+substitutions:
+  name: esp-driveway-alarm
+  friendly_name: "Driveway Alarm"
+  area: "Family Room"
+  ip_addr: 192.168.4.30
+  board: "huzzah"
+
+esphome:
+  board: ${board}
+  platform: ESP8266
+
+packages:
+  basic: !include common/basic.yaml
+
+binary_sensor:
+  - platform: gpio
+    id: water_detected
+    name: "Motion"
+    internal: false
+    device_class: "motion"
+    pin:
+      number: 14
+      inverted: true
+    filters:
+      - delayed_off: 5s
