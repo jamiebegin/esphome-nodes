@@ -1,0 +1,68 @@
+substitutions:
+  name: esp32-chest-freezer
+  area: "Garage"
+  friendly_name: "Chest Freezer"
+  ip_addr: 192.168.4.31
+  dallas_temperature_offset: "0.0"
+  bme680_temperature_offset: "-1.5"
+  board: "featheresp32"
+
+esp32:
+  board: ${board}
+  framework:
+    type: arduino
+
+packages:
+  basic: !include common/basic.yaml
+  feather_battery: !include common/feather_battery.yaml
+  bme680: !include common/bme680.yaml
+
+logger:
+  level: info
+
+one_wire:
+  - platform: gpio
+    pin: GPIO13
+
+sensor:
+  - platform: dallas_temp
+    address: 0x2201201914ceeb28
+    name: "Freezer Temperature"
+    device_class: "temperature"
+    state_class: "measurement"
+    unit_of_measurement: "°C"
+    update_interval: 1s
+    expire_after: 30min
+    filters:
+      - offset: ${dallas_temperature_offset}
+      - exponential_moving_average:
+          alpha: 0.3
+          send_every: 300
+          send_first_at: 1
+
+  - platform: adc
+    pin: A2
+    raw: true
+    id: door_hall_effect
+    internal: true
+    update_interval: 100ms
+    on_value_range:
+      - below: 2000
+        then:
+          - binary_sensor.template.publish:
+              id: freezer_door
+              state: OFF
+      - above: 2000
+        then:
+          - binary_sensor.template.publish:
+              id: freezer_door
+              state: ON
+
+binary_sensor:
+  - platform: template
+    id: freezer_door
+    name: "Freezer Door"
+    device_class: "door"
+    publish_initial_state: true
+    filters:
+      - delayed_on_off: 0.3s    

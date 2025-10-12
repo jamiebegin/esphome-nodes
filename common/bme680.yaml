@@ -1,0 +1,105 @@
+i2c:
+  scan: True
+  id: bus_a
+  
+sensor:
+  - platform: bme680
+    temperature:
+      id: "bme680_temp"
+      name: "Temperature"
+      oversampling: 16x
+      force_update: true
+      expire_after: 60min
+      accuracy_decimals: 1
+      unit_of_measurement: "°C"
+      device_class: "temperature"
+      state_class: "measurement"      
+      filters:
+        - offset: ${bme680_temperature_offset}
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 300
+            send_first_at: 1
+    pressure:
+      name: "Pressure"
+      force_update: true
+      oversampling: 16x
+      expire_after: 60min
+      filters:
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 300
+            send_first_at: 1 
+    humidity:
+      id: "bme680_humidity"
+      name: "Humidity"
+      force_update: true
+      oversampling: 16x
+      expire_after: 60min
+      accuracy_decimals: 0      
+      filters:
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 300
+            send_first_at: 1
+
+    gas_resistance:
+      id: "gas_resistance"
+      name: "Gas Resistance"
+      force_update: true
+      expire_after: 60min
+      accuracy_decimals: 0      
+      filters:
+        - exponential_moving_average:
+            alpha: 0.1
+            send_every: 300
+            send_first_at: 1
+        - lambda: !lambda "return int(x);"
+    address: 0x77
+    update_interval: 1s
+    iir_filter: 31x
+
+  - platform: template
+    name: "Air Quality Index"
+    id: iaq
+    state_class: "measurement"
+    device_class: "aqi"
+    expire_after: 60min
+    # caulculation: comp_gas = log(R_gas[ohm]) + 0.04 log(Ohm)/%rh * hum[%rh]
+    lambda: |-
+      return log(id(gas_resistance).state) + 0.04 *  id(bme680_humidity).state;  
+
+  - platform: absolute_humidity
+    name: "Absolute Humidity"
+    temperature: bme680_temp
+    humidity: bme680_humidity
+
+text_sensor:
+  - platform: template
+    name: "IAQ Classification"
+    icon: "mdi:checkbox-marked-circle-outline"
+    lambda: |-
+      if (int(id(iaq).state) <= 50) {
+        return {"Excellent"};
+      }
+      else if (int(id(iaq).state) <= 100) {
+        return {"Good"};
+      }
+      else if (int(id(iaq).state) <= 150) {
+        return {"Lightly Polluted"};
+      }
+      else if (int(id(iaq).state) <= 200) {
+        return {"Moderately Polluted"};
+      }
+      else if (int(id(iaq).state) <= 250) {
+        return {"Heavily Polluted"};
+      }
+      else if (int(id(iaq).state) <= 350) {
+        return {"Severely Polluted"};
+      }
+      else if (int(id(iaq).state) <= 500) {
+        return {"Toxic!"};
+      }
+      else {
+        return {"unknown"};
+      }

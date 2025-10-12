@@ -1,10 +1,13 @@
 substitutions:
-  name: esp32-office-env
-  area: "Office"
-  friendly_name: "Office Env"
-  ip_addr: 192.168.4.25
+  name: esp32-shop-env
+  area: "Shop"
+  friendly_name: "Shop Env"
+  ip_addr: 192.168.4.29
   bme680_temperature_offset: "-2.0"
   board: "featheresp32"
+
+wifi:
+  use_address: 192.168.5.29
 
 esp32:
   board: ${board}
@@ -15,5 +18,4 @@ packages:
   basic: !include common/basic.yaml
   feather_battery: !include common/feather_battery.yaml
   sps30: !include common/sps30.yaml
-  scd30: !include common/scd30.yaml
   bme680: !include common/bme680.yaml

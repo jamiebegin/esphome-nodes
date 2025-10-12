@@ -1,0 +1,126 @@
+substitutions:
+  name: esp32-minisplit-office
+  area: "Office"
+  friendly_name: "Office Minisplit"
+  ip_addr: 192.168.4.32
+  board: "featheresp32"
+
+esp32:
+  board: ${board}
+  framework:
+    type: esp-idf
+
+packages:
+  basic: !include common/basic.yaml
+
+external_components:
+  - source: github://echavet/MitsubishiCN105ESPHome
+
+uart:
+  id: HP_UART
+  baud_rate: 2400
+  tx_pin: GPIO17
+  rx_pin: GPIO16
+
+climate:
+  - platform: cn105
+    id: minisplit
+    name: "Office Minisplit"
+    icon: mdi:heat-pump
+    visual:
+      min_temperature: 15
+      max_temperature: 31
+      temperature_step:
+        target_temperature: 1
+        current_temperature: 0.1
+    compressor_frequency_sensor:
+      name: ${name} Compressor Frequency
+    vertical_vane_select:
+      name: ${name} Vertical Vane
+    horizontal_vane_select:
+      name: ${name} Horizontal Vane
+    isee_sensor:
+      name: ${name} ISEE Sensor
+    remote_temperature_timeout: 30min
+    debounce_delay : 500ms
+    update_interval: 4s
+
+sensor:
+  - platform: homeassistant
+    id: office_env_temp_in_c
+    entity_id: sensor.esp32_office_env_temperature
+    filters:
+      - lambda: "return (x - 32.0) * (5.0/9.0);"
+    on_value:
+      then:
+        - lambda: 'id(minisplit).set_remote_temperature(x);'
+
+switch:
+  - platform: template
+    id: away_mode
+    name: "Away Mode"
+    optimistic: true
+    icon: "mdi:home-export-outline"
+    restore_mode: "ALWAYS_OFF"
+
+logger:
+  level: INFO
+  logs:
+    EVT_SETS : INFO
+    WIFI : INFO
+    MQTT : INFO
+    WRITE_SETTINGS : INFO
+    SETTINGS : INFO
+    STATUS : INFO
+    CN105Climate: WARN
+    CN105: INFO
+    climate: WARN
+    sensor: WARN
+    chkSum : INFO
+    WRITE : WARN
+    READ : WARN
+    Header: INFO
+    Decoder : INFO
+    CONTROL_WANTED_SETTINGS: INFO
+# Swap the above settings with these debug settings for development or troubleshooting
+#  level: DEBUG
+#  logs:
+#    EVT_SETS : DEBUG
+#    WIFI : INFO
+#    MQTT : INFO
+#    WRITE_SETTINGS : DEBUG
+#    SETTINGS : DEBUG
+#    STATUS : INFO
+#    CN105Climate: WARN
+#    CN105: DEBUG
+#    climate: WARN
+#    sensor: WARN
+#    chkSum : INFO
+#    WRITE : WARN
+#    READ : WARN
+#    Header: INFO
+#    Decoder : DEBUG
+#    CONTROL_WANTED_SETTINGS: DEBUG
+
+# binary_sensor:
+#   # Turn on heat mode if we hit a critically low temp. Guards against burst pipes
+#   # and stuff if we accidently left the thermostat off.
+#   - platform: template
+#     id: critical_low_temp
+#     internal: true
+#     lambda: |-
+#       if (id(office_env_temp_in_c).state < 4) {
+#         return true;
+#       } else {
+#         return false;
+#       }
+#     on_state:
+#       then:
+#         - if:
+#             condition:
+#               lambda: 'return x;'
+#             then:
+#             - climate.control:
+#                 id: minisplit
+#                 mode: HEAT
+#                 target_temperature: 6°C

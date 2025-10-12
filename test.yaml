@@ -1,32 +1,26 @@
-- name: Docker
-  containers:
-    - jackett
-    - sonarr
-    - radarr
-    - plex
-    - deluge
-    - newsletter
-    - grafana
-    - influxdb
-    - mqtt
-    - unifi
-    - kitana
-    - deepstack
-    - ledfx
-    - homeassistant
-  monitored_conditions:
-    - version
-    - containers_running
-    - containers_total
-    - state
-    - status
-    - memory
-    - cpu_percentage
-    - health
-    - uptime
-    - 1cpu_percentage
-    - memory_percentage
-    - network_speed_up
-    - network_speed_down
-    - network_total_up
-    - network_total_down
+substitutions:
+  name: esp32-test
+  area: "test"
+  friendly_name: "test"
+  ip_addr: 192.168.4.122
+  board: "featheresp32"
+
+esp32:
+  board: ${board}
+  framework:
+    type: arduino
+# logger:
+#   hardware_uart: USB_SERIAL_JTAG
+#   level: DEBUG
+
+packages:
+  basic: !include common/basic.yaml
+
+external_components:
+  - source: github://geoffdavis/esphome-mitsubishiheatpump
+
+climate:
+  - platform: mitsubishi_heatpump
+    name: "Office Minisplit"
+    hardware_uart: UART0
+    update_interval: 500ms

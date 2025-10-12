@@ -1,21 +1,19 @@
 substitutions:
   name: esp32-basement-env
   area: "Basement"
-  friendly_name: "Basement Env Sensors"
-  ip_addr: 192.168.5.114
+  friendly_name: "Basement Env"
+  ip_addr: 192.168.4.24
+  bme680_temperature_offset: "-1.0"
+  board: "featheresp32"
 
 esp32:
   board: featheresp32
   framework:
     type: arduino
-i2c:
-  scan: True
-  id: bus_b
 
 packages:
   basic: !include common/basic.yaml
   feather_battery: !include common/feather_battery.yaml
   sps30: !include common/sps30.yaml
   scd30: !include common/scd30.yaml
-  bh1750: !include common/bh1750.yaml
   bme680: !include common/bme680.yaml

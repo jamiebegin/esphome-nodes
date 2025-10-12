@@ -1,0 +1,114 @@
+substitutions:
+  name: esp32-shop-thermostat
+  area: "Shop"
+  friendly_name: "Shop Thermostat"
+  ip_addr: 192.168.4.26
+  bme680_temperature_offset: "-0.5"
+  board: "featheresp32"
+
+esp32:
+  board: ${board}
+  framework:
+    type: arduino
+
+i2c:
+  scan: True
+  id: bus_a
+
+switch:
+  - platform: gpio
+    id: call_heat
+    internal: true
+    pin: 26
+    name: "Call Heat"
+
+climate:
+  - platform: bang_bang
+    name: "Shop Heater"
+    id: shop_heater_stat
+    sensor: avg_temp
+    default_target_temperature_low: 62 °F
+    default_target_temperature_high: 67 °F
+    heat_action:
+      - switch.turn_on: call_heat
+    idle_action:
+      - switch.turn_off: call_heat
+    away_config:
+      default_target_temperature_low: 45 °F
+      default_target_temperature_high: 50 °F
+
+binary_sensor:
+  - platform: template
+    id: shop_lights_status
+    name: "Shop Lights"
+    icon: "mdi:ceiling-light-multiple"
+    internal: false
+    lambda: |-
+      if (int(id(bh1750_lux).state) > 8) {
+        // Shop lights are on
+        return true;
+      } else {
+        // Shop lights are off
+        return false;
+      }
+
+  # Set the thermostat to "away" mode and turn it on
+  # if we hit a critically low temp. Guards against burst pipes
+  # and stuff if we accidently left the thermostat off.
+  - platform: template
+    id: critical_low_temp
+    internal: true
+    lambda: |-
+      if (id(bme680_temp).state < 40) {
+        return true;
+      } else {
+        return false;
+      }
+    on_state:
+      then:
+        - if:
+            condition:
+              lambda: 'return x;'
+            then:
+              - lambda: |-
+                  auto call = id(shop_heater_stat).make_call();
+                  call.set_preset("AWAY");
+                  call.perform();
+                  call.set_mode("HEAT");
+                  call.perform();                  
+sensor:
+  - platform: adc
+    pin: A2 # Pin 34
+    name: "LNG Levels"
+    update_interval: 60s
+
+  - platform: adc
+    pin: A3 # Pin 39
+    name: "CO Levels"
+    update_interval: 60s
+
+  - platform: homeassistant
+    id: shop_env_temp_in_c
+    entity_id: sensor.esp32_shop_env_temperature
+    filters:
+      - lambda: "return (x - 32.0) * (5.0/9.0);"
+
+  - platform: combination
+    type: kalman
+    name: "Avg Temperature"
+    id: avg_temp
+    device_class: "temperature"
+    state_class: "measurement"
+    unit_of_measurement: "°C"
+    process_std_dev: 0.001
+    sources:
+      - source: bme680_temp
+        error: 0.001
+      - source: shop_env_temp_in_c
+        error: 0.003
+
+packages:
+  basic: !include common/basic.yaml
+  #feather_battery: !include common/feather_battery.yaml
+  bme680: !include common/bme680.yaml
+  bh1750: !include common/bh1750.yaml

@@ -1,152 +1,122 @@
 substitutions:
   name: esp32-water
   friendly_name: "Water Systems"
-  ip_addr: 192.168.5.239
-  board: featheresp32
-  platform: ESP32
-
-esphome:
-  name: ${name}
-  friendly_name: ${friendly_name}
-  name_add_mac_suffix: false
+  area: "Laundry"
+  ip_addr: 192.168.4.21
+  board: "featheresp32"
 
 esp32:
   board: ${board}
   framework:
     type: arduino
 
-wifi:
-  ssid: !secret wifi_ssid
-  password: !secret wifi_pwd
-  fast_connect: False
-  reboot_timeout: 15min
-  domain: !secret domain
-  manual_ip:
-    static_ip: ${ip_addr}
-    gateway: !secret gateway
-    subnet: !secret subnet
-    dns1: !secret dns_server
+packages:
+  basic: !include common/basic.yaml
     
-  # Enable fallback hotspot (captive portal) in case wifi connection fails
-  ap:
-    ssid: "Water Systems Fallback"
-    password: "E12bcaWpvNMD"
-
-time:
-  - platform: sntp
-    id: sntp_time
-    timezone: "America/Detroit"
-    servers: !secret ntp_server
-
-mqtt:
-  broker: !secret mqtt_broker
-  topic_prefix: esphome/devices/${name}
-  birth_message:
-    topic: esphome/availability/${name}
-    payload: online
-  will_message:
-    topic: esphome/availability/${name}
-    payload: offline
-
-# #######################################
-logger:
-
-api:
-  password: ""
-
-ota:
-  password: ""
-# #######################################
-    
-
-# ######### Sensors ##########
-
 sensor:
-  - platform: wifi_signal
-    name: "Wifi Signal"
-    update_interval: 1min
-    force_update: true
-    expire_after: 60min
-    filters:
-      - median:
-          window_size: 241
-          send_every: 60
-          send_first_at: 1
-          
-  - platform: uptime
-    name: "Uptime"
-    expire_after: 30min
-    
   - platform: ultrasonic
     trigger_pin: 13
     echo_pin: 27
     name: "Brine Tank Level (Primary)"
-    # 40" tall
+    # 40" / 102 cm tall
+    # Water level when salt is empty is 5"    
     id: brine_tank_primary
     unit_of_measurement : "%"
+    state_class: "measurement"
     icon: "mdi:cup-water"
     update_interval: 1min
     expire_after: 24h
     accuracy_decimals: 0
-    force_update: true
     filters:
-      - lambda: return (( 43 - (x * 39.3701) )/40)*100;
-      - filter_out: nan
-      - median:
-          window_size: 960
-          send_every: 480
-          send_first_at: 1
+      - lambda: |-
+          const float TANK_HEIGHT_CM = 102.0;  // Replace with the actual height of your tank in cm
+          const float MIN_WATER_LEVEL_CM = 12.0; // Minimum water level when the tank is empty
+          const float MAX_SALT_LEVEL_GAP_CM = 10.0; // Gap between sensor and top of salt when tank is full
+          float distance_m = x;
+          float distance_cm = distance_m * 100.0;
 
+          ESP_LOGD("salt_level", "Measured distance: %.1f cm", distance_cm);
+
+          if (distance_cm > TANK_HEIGHT_CM) {
+            ESP_LOGW("salt_level", "Distance measurement exceeds tank height. Check sensor placement.");
+            return 0.0;
+          }
+
+          float effective_height = TANK_HEIGHT_CM - MIN_WATER_LEVEL_CM - MAX_SALT_LEVEL_GAP_CM;
+          float salt_level = ((effective_height - (distance_cm - MIN_WATER_LEVEL_CM)) / effective_height) * 100.0;
+
+          if (salt_level < 0) {
+            salt_level = 0;
+          } else if (salt_level > 100) {
+            salt_level = 100;
+          }
+
+          ESP_LOGD("salt_level", "Calculated salt level: %.1f%%", salt_level);
+
+          return salt_level;
+      - filter_out: nan
+      - quantile:
+          window_size: 480
+          send_every: 240
+          send_first_at: 1
+          quantile: .9
 
   - platform: ultrasonic
     trigger_pin: 14
     echo_pin: 15
     name: "Brine Tank Level (Secondary)"
-    # 33" tall
+    # 33" / 84 cm tall
+    # Water level when salt is empty is 5"
     id: brine_tank_secondary
     unit_of_measurement : "%"
+    state_class: "measurement"
     icon: "mdi:cup-water"
     update_interval: 1min
     expire_after: 24h
     accuracy_decimals: 0
-    force_update: true
     filters:
-      - lambda: return (( 36 - (x * 39.3701) )/33)*100;
+      - lambda: |-
+          const float TANK_HEIGHT_CM = 84.0;  // Replace with the actual height of your tank in cm
+          const float MIN_WATER_LEVEL_CM = 12.0; // Minimum water level when the tank is empty
+          const float MAX_SALT_LEVEL_GAP_CM = 10.0; // Gap between sensor and top of salt when tank is full
+          float distance_m = x;
+          float distance_cm = distance_m * 100.0;
+
+          ESP_LOGD("salt_level", "Measured distance: %.1f cm", distance_cm);
+
+          if (distance_cm > TANK_HEIGHT_CM) {
+            ESP_LOGW("salt_level", "Distance measurement exceeds tank height. Check sensor placement.");
+            return 0.0;
+          }
+
+          float effective_height = TANK_HEIGHT_CM - MIN_WATER_LEVEL_CM - MAX_SALT_LEVEL_GAP_CM;
+          float salt_level = ((effective_height - (distance_cm - MIN_WATER_LEVEL_CM)) / effective_height) * 100.0;
+
+          if (salt_level < 0) {
+            salt_level = 0;
+          } else if (salt_level > 100) {
+            salt_level = 100;
+          }
+
+          ESP_LOGD("salt_level", "Calculated salt level: %.1f%%", salt_level);
+
+          return salt_level;
       - filter_out: nan
-      - median:
-          window_size: 960
-          send_every: 480
+      - quantile:
+          window_size: 480
+          send_every: 240
           send_first_at: 1
+          quantile: .9
           
   - platform: mqtt_subscribe
     name: "Injection Pump"
     id: injection_pump_mqtt
     topic: irrigation/injection_pump
 
-binary_sensor:
-  - platform: status
-    name: "Status"
-
-
-# ######### Switches ##########
-
 switch:
-  - platform: restart
-    name: "Restart"
-  - platform: shutdown
-    name: "Shutdown"
-    
   - platform: gpio
     pin: A0
     name: "Injection Pump Relay"
     id: injection_pump_relay
     inverted: no
     restore_mode: ALWAYS_OFF
-
-button:
-  - platform: safe_mode
-    name: "Safe Mode Boot"
-    entity_category: diagnostic
-    
-###############################
-

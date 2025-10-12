@@ -1,0 +1,32 @@
+substitutions:
+  name: esp32-garage-env
+  area: "Garage"
+  friendly_name: "Garage Env"
+  ip_addr: 192.168.4.22
+  board: "featheresp32"
+
+esp32:
+  board: ${board}
+  framework:
+    type: arduino
+
+packages:
+  basic: !include common/basic.yaml
+
+binary_sensor:
+  - platform: gpio
+    pin: 36
+    name: "Garage PIR Sensor"
+    device_class: motion
+    internal: true
+    id: pir
+    on_state:
+      then:
+        - binary_sensor.template.publish:
+            id: garage_motion
+            state: !lambda "return x;"
+
+  - platform: template
+    name: Garage Motion
+    id: garage_motion
+    device_class: motion
