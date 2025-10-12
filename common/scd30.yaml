@@ -38,7 +38,7 @@ sensor:
             send_every: 60
             send_first_at: 1
     address: 0x61
-    update_interval: 1s
+    update_interval: 2s
 
 text_sensor:
   - platform: template

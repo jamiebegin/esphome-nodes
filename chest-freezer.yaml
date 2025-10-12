@@ -20,17 +20,18 @@ packages:
 logger:
   level: info
 
-dallas:
-  - pin: GPIO13
-    update_interval: 1s
+one_wire:
+  - platform: gpio
+    pin: GPIO13
 
 sensor:
-  - platform: dallas
+  - platform: dallas_temp
     address: 0x2201201914ceeb28
     name: "Freezer Temperature"
     device_class: "temperature"
     state_class: "measurement"
     unit_of_measurement: "°C"
+    update_interval: 1s
     expire_after: 30min
     filters:
       - offset: ${dallas_temperature_offset}

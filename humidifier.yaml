@@ -260,7 +260,8 @@ sensor:
 
 #####################################################
   # combine temperature readings throughout the house
-  - platform: kalman_combinator
+  - platform: combination
+    type: kalman
     name: "Household Temperature"
     id: indoor_temp
     device_class: "temperature"
@@ -284,7 +285,8 @@ sensor:
 
 
   # combine humidity readings throughout the house
-  - platform: kalman_combinator
+  - platform: combination
+    type: kalman
     name: "Household Humidity"
     id: indoor_humid
     device_class: "humidity"
