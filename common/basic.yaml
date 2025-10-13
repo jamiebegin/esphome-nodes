@@ -50,7 +50,9 @@ logger:
             qos: 1
             topic: esphome/device_logs/${name}/error
             payload: !lambda |-
-              return "Triggered on_message with level " + to_string(level) + ", tag " + tag + " and message " + message;
+              // Use ESPHome's str_sprintf to avoid operator+ pitfalls and type issues.
+              return str_sprintf("Triggered on_message with level %d, tag %s and message %s",
+                                 level, tag, message);
     - level: WARN
       then:
         - mqtt.publish:
@@ -58,7 +60,8 @@ logger:
             qos: 1          
             topic: esphome/device_logs/${name}/warning
             payload: !lambda |-
-              return "Triggered on_message with level " + to_string(level) + ", tag " + tag + " and message " + message;
+              return str_sprintf("Triggered on_message with level %d, tag %s and message %s",
+                                 level, tag, message);
 
 api:
 
@@ -149,7 +152,8 @@ text_sensor:
     icon: "mdi:expansion-card"
     update_interval: 5d
     lambda: |-
-      return to_string("${board}");
+      // Return a std::string directly; don't call std::to_string on a C-string.
+      return std::string("${board}");
 
   - platform: template
     name: "WiFi Signal Quality"
