@@ -6,9 +6,8 @@ substitutions:
   bme280_temperature_offset: "-2.0"
   board: "nodemcuv2"
 
-esphome:
+esp8266:
   board: ${board}
-  platform: ESP8266
 
 packages:
   basic: !include common/basic.yaml

@@ -1,8 +1,14 @@
+# Hardware assembly:
+# https://chrdavis.github.io/hacking-a-mitsubishi-heat-pump-Part-1/
+#
+# Controller code:
+# https://github.com/echavet/MitsubishiCN105ESPHome
+
 substitutions:
   name: esp32-minisplit-office
   area: "Office"
   friendly_name: "Office Minisplit"
-  ip_addr: 192.168.4.32
+  ip_addr: 192.168.4.35
   board: "featheresp32"
 
 esp32:
@@ -28,22 +34,36 @@ climate:
     name: "Office Minisplit"
     icon: mdi:heat-pump
     visual:
-      min_temperature: 15
+      min_temperature: 10
       max_temperature: 31
       temperature_step:
         target_temperature: 1
         current_temperature: 0.1
     compressor_frequency_sensor:
-      name: ${name} Compressor Frequency
+      name: Compressor Frequency
     vertical_vane_select:
-      name: ${name} Vertical Vane
+      name: Vertical Vane
     horizontal_vane_select:
-      name: ${name} Horizontal Vane
+      name: Horizontal Vane
     isee_sensor:
-      name: ${name} ISEE Sensor
+      name: iSee Sensor
     remote_temperature_timeout: 30min
-    debounce_delay : 500ms
+    debounce_delay : 100ms
     update_interval: 4s
+
+    # Added Oct 14, 2025
+    fahrenheit_compatibility: true
+    stage_sensor:
+      name: Stage
+      use_as_operating_fallback: true     # set to true if your unit doesn't provide activity indicator
+      entity_category: diagnostic
+      disabled_by_default: false
+    circulator_switch:
+      name: Circulator
+      disabled_by_default: false
+    airflow_control_select:
+      name: Airflow Control
+      disabled_by_default: false
 
 sensor:
   - platform: homeassistant
@@ -64,43 +84,46 @@ switch:
     restore_mode: "ALWAYS_OFF"
 
 logger:
-  level: INFO
-  logs:
-    EVT_SETS : INFO
-    WIFI : INFO
-    MQTT : INFO
-    WRITE_SETTINGS : INFO
-    SETTINGS : INFO
-    STATUS : INFO
-    CN105Climate: WARN
-    CN105: INFO
-    climate: WARN
-    sensor: WARN
-    chkSum : INFO
-    WRITE : WARN
-    READ : WARN
-    Header: INFO
-    Decoder : INFO
-    CONTROL_WANTED_SETTINGS: INFO
+  # level: INFO
+  # logs:
+  #   EVT_SETS: INFO
+  #   WIFI: INFO
+  #   MQTT: INFO
+  #   WRITE_SETTINGS: INFO
+  #   SETTINGS: INFO
+  #   STATUS: INFO
+  #   CYCLE: INFO
+  #   CN105Climate: WARN
+  #   CN105: INFO
+  #   climate: WARN
+  #   sensor: WARN
+  #   chkSum : INFO
+  #   WRITE : WARN
+  #   READ : WARN
+  #   Header: INFO
+  #   Decoder : INFO
+  #   CONTROL_WANTED_SETTINGS: INFO
+
 # Swap the above settings with these debug settings for development or troubleshooting
-#  level: DEBUG
-#  logs:
-#    EVT_SETS : DEBUG
-#    WIFI : INFO
-#    MQTT : INFO
-#    WRITE_SETTINGS : DEBUG
-#    SETTINGS : DEBUG
-#    STATUS : INFO
-#    CN105Climate: WARN
-#    CN105: DEBUG
-#    climate: WARN
-#    sensor: WARN
-#    chkSum : INFO
-#    WRITE : WARN
-#    READ : WARN
-#    Header: INFO
-#    Decoder : DEBUG
-#    CONTROL_WANTED_SETTINGS: DEBUG
+ level: DEBUG
+ logs:
+   EVT_SETS: DEBUG
+   WIFI: INFO
+   MQTT: INFO
+   WRITE_SETTINGS: DEBUG
+   SETTINGS: DEBUG
+   STATUS: INFO
+   CYCLE: INFO
+   CN105Climate: WARN
+   CN105: DEBUG
+   climate: DEBUG
+   sensor: DEBUG
+   chkSum : INFO
+   WRITE : WARN
+   READ : WARN
+   Header: INFO
+   Decoder : DEBUG
+   CONTROL_WANTED_SETTINGS: DEBUG
 
 # binary_sensor:
 #   # Turn on heat mode if we hit a critically low temp. Guards against burst pipes

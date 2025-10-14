@@ -18,95 +18,96 @@ sensor:
     trigger_pin: 13
     echo_pin: 27
     name: "Brine Tank Level (Primary)"
-    # 40" / 102 cm tall
-    # Water level when salt is empty is 5"    
     id: brine_tank_primary
-    unit_of_measurement : "%"
-    state_class: "measurement"
+    unit_of_measurement: "%"
+    state_class: measurement
     icon: "mdi:cup-water"
     update_interval: 1min
     expire_after: 24h
     accuracy_decimals: 0
+    timeout: 1.2m            # speed up timeouts; tank < 1.2 m. Defaults to 2 m. 
     filters:
-      - lambda: |-
-          const float TANK_HEIGHT_CM = 102.0;  // Replace with the actual height of your tank in cm
-          const float MIN_WATER_LEVEL_CM = 12.0; // Minimum water level when the tank is empty
-          const float MAX_SALT_LEVEL_GAP_CM = 10.0; // Gap between sensor and top of salt when tank is full
-          float distance_m = x;
-          float distance_cm = distance_m * 100.0;
-
-          ESP_LOGD("salt_level", "Measured distance: %.1f cm", distance_cm);
-
-          if (distance_cm > TANK_HEIGHT_CM) {
-            ESP_LOGW("salt_level", "Distance measurement exceeds tank height. Check sensor placement.");
-            return 0.0;
-          }
-
-          float effective_height = TANK_HEIGHT_CM - MIN_WATER_LEVEL_CM - MAX_SALT_LEVEL_GAP_CM;
-          float salt_level = ((effective_height - (distance_cm - MIN_WATER_LEVEL_CM)) / effective_height) * 100.0;
-
-          if (salt_level < 0) {
-            salt_level = 0;
-          } else if (salt_level > 100) {
-            salt_level = 100;
-          }
-
-          ESP_LOGD("salt_level", "Calculated salt level: %.1f%%", salt_level);
-
-          return salt_level;
-      - filter_out: nan
-      - quantile:
-          window_size: 480
-          send_every: 240
+      # 1) Smooth the *distance* first (in meters)
+      - median:
+          window_size: 7
+          send_every: 3
           send_first_at: 1
-          quantile: .9
+      # 2) Convert distance -> % full with correct linear mapping
+      - lambda: |-
+          // geometry (cm)
+          const float TANK_HEIGHT_CM = 102.0;   // total inside height
+          const float MIN_WATER_LEVEL_CM = 12.0; // brine height at salt-empty
+          const float GAP_FULL_CM = 10.0;        // sensor-to-salt gap when full
+          const float TOL_CM = 2.0;              // reject obvious outliers
+
+          if (isnan(x)) return NAN;
+
+          const float d_cm = x * 100.0f;              // x is distance (m)
+          const float d_empty = TANK_HEIGHT_CM - MIN_WATER_LEVEL_CM;
+          const float d_full  = GAP_FULL_CM;
+
+          // reject distances outside [d_full - tol, d_empty + tol]
+          if (d_cm < (d_full - TOL_CM) || d_cm > (d_empty + TOL_CM)) {
+            ESP_LOGW("salt_level", "Primary: out-of-range echo: %.1f cm", d_cm);
+            return NAN;
+          }
+
+          float pct = 100.0f * (d_empty - d_cm) / (d_empty - d_full);
+          if (pct < 0.0f)   pct = 0.0f;
+          if (pct > 100.0f) pct = 100.0f;
+          ESP_LOGD("salt_level", "Primary: d=%.1f cm -> %.1f%%", d_cm, pct);
+          return pct;
+      # 3) Drop invalids and reduce chatter:
+      - filter_out: nan
+      - or:
+          - delta: 1.5        # publish immediately if change >= 1.5 %
+          - throttle: 10min   # otherwise, at most every 10 min
+
 
   - platform: ultrasonic
     trigger_pin: 14
     echo_pin: 15
     name: "Brine Tank Level (Secondary)"
-    # 33" / 84 cm tall
-    # Water level when salt is empty is 5"
     id: brine_tank_secondary
-    unit_of_measurement : "%"
-    state_class: "measurement"
+    unit_of_measurement: "%"
+    state_class: measurement
     icon: "mdi:cup-water"
     update_interval: 1min
     expire_after: 24h
     accuracy_decimals: 0
+    timeout: 1.2m
     filters:
-      - lambda: |-
-          const float TANK_HEIGHT_CM = 84.0;  // Replace with the actual height of your tank in cm
-          const float MIN_WATER_LEVEL_CM = 12.0; // Minimum water level when the tank is empty
-          const float MAX_SALT_LEVEL_GAP_CM = 10.0; // Gap between sensor and top of salt when tank is full
-          float distance_m = x;
-          float distance_cm = distance_m * 100.0;
-
-          ESP_LOGD("salt_level", "Measured distance: %.1f cm", distance_cm);
-
-          if (distance_cm > TANK_HEIGHT_CM) {
-            ESP_LOGW("salt_level", "Distance measurement exceeds tank height. Check sensor placement.");
-            return 0.0;
-          }
-
-          float effective_height = TANK_HEIGHT_CM - MIN_WATER_LEVEL_CM - MAX_SALT_LEVEL_GAP_CM;
-          float salt_level = ((effective_height - (distance_cm - MIN_WATER_LEVEL_CM)) / effective_height) * 100.0;
-
-          if (salt_level < 0) {
-            salt_level = 0;
-          } else if (salt_level > 100) {
-            salt_level = 100;
-          }
-
-          ESP_LOGD("salt_level", "Calculated salt level: %.1f%%", salt_level);
-
-          return salt_level;
-      - filter_out: nan
-      - quantile:
-          window_size: 480
-          send_every: 240
+      - median:
+          window_size: 7
+          send_every: 3
           send_first_at: 1
-          quantile: .9
+      - lambda: |-
+          const float TANK_HEIGHT_CM = 84.0;
+          const float MIN_WATER_LEVEL_CM = 12.0;
+          const float GAP_FULL_CM = 10.0;
+          const float TOL_CM = 2.0;
+
+          if (isnan(x)) return NAN;
+
+          const float d_cm = x * 100.0f;
+          const float d_empty = TANK_HEIGHT_CM - MIN_WATER_LEVEL_CM;
+          const float d_full  = GAP_FULL_CM;
+
+          if (d_cm < (d_full - TOL_CM) || d_cm > (d_empty + TOL_CM)) {
+            ESP_LOGW("salt_level", "Secondary: out-of-range echo: %.1f cm", d_cm);
+            return NAN;
+          }
+
+          float pct = 100.0f * (d_empty - d_cm) / (d_empty - d_full);
+          if (pct < 0.0f)   pct = 0.0f;
+          if (pct > 100.0f) pct = 100.0f;
+          ESP_LOGD("salt_level", "Secondary: d=%.1f cm -> %.1f%%", d_cm, pct);
+          return pct;
+      - filter_out: nan
+      - or:
+          - delta: 1.5
+          - throttle: 10min
+
           
   - platform: mqtt_subscribe
     name: "Injection Pump"

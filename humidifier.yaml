@@ -15,8 +15,9 @@ esphome:
   includes:
     - dewpoint.h
 
-# Seed initial state only after HA is connected to avoid NaNs
+# ---- HA connectivity guards ----
 api:
+  # Seed initial state once HA is up; also restore fan mode if we shut down during HA loss
   on_client_connected:
     then:
       - text_sensor.template.publish:
@@ -28,6 +29,34 @@ api:
             id(indoor_humid).publish_state(id(familyroom_humid).state);
           if (!isnan(id(familyroom_temp).state))
             id(indoor_temp).publish_state(id(familyroom_temp).state);
+      # If we powered down during HA loss, restore the fan mode now that HA is back
+      - if:
+          condition:
+            lambda: 'return id(restore_fan_pending);'
+          then:
+            - logger.log: "HA reconnected; restoring prior fan mode."
+            - homeassistant.service:
+                service: climate.set_fan_mode
+                data:
+                  entity_id: climate.main_floor
+                  fan_mode: !lambda 'return id(prev_fan_mode).c_str();'
+            - lambda: 'id(restore_fan_pending) = false;'
+
+  # If HA drops while steaming, stop immediately to prevent runaway
+  on_client_disconnected:
+    then:
+      - logger.log: "HA disconnected; failsafe shutting down humidifier."
+      - if:
+          condition:
+            or:
+              - text_sensor.state: { id: humidifier_status, state: "on" }
+              - text_sensor.state: { id: humidifier_status, state: "starting" }
+          then:
+            - switch.turn_off: call_humid
+            - text_sensor.template.publish:
+                id: humidifier_status
+                state: "ha_lost"
+            - lambda: 'id(restore_fan_pending) = true;'
 
 # ------------- Globals -------------
 globals:
@@ -35,10 +64,13 @@ globals:
     type: std::string
     restore_value: no
     initial_value: "\"auto\""
+  - id: restore_fan_pending
+    type: bool
+    restore_value: no
+    initial_value: "false"
 
 # ------------- Switches & Buttons -------------
 switch:
-  # Require-house-heat gating (seasonal lockout)
   - platform: template
     id: require_heat
     name: "Require Furnace Heat Mode"
@@ -46,7 +78,6 @@ switch:
     icon: "mdi:heat-wave"
     restore_mode: "ALWAYS_ON"
 
-  # Dew-point / condensation avoidance throttle
   - platform: template
     id: avoid_condensation
     name: "Avoid Window Condensation"
@@ -68,7 +99,6 @@ switch:
           outdoor_temp: !lambda "return float(id(outdoor_temp).state);"
           r_val: !lambda "return float(id(r_value).state);"
 
-  # Pause control (reliable, stops steam if running)
   - platform: template
     id: pause_humid
     icon: "mdi:pause-box"
@@ -87,7 +117,6 @@ switch:
     turn_off_action:
       - logger.log: "Humidifier unpaused"
 
-  # Physical output that calls for steam
   - platform: gpio
     id: call_humid
     pin: 26
@@ -107,7 +136,6 @@ button:
     name: "Toggle Steam"
     icon: mdi:waves-arrow-up
     on_press:
-      # Guard: ignore re-press during transitions
       - if:
           condition:
             or:
@@ -116,7 +144,6 @@ button:
           then:
             - logger.log: "Toggle ignored: transition in progress."
           else:
-            # If currently OFF, try to start (respect pause + heat requirement)
             - if:
                 condition:
                   text_sensor.state: { id: humidifier_status, state: 'off' }
@@ -128,15 +155,16 @@ button:
                           - and:
                               - switch.is_on: require_heat
                               - binary_sensor.is_off: heat_mode_satisfied
+                          - binary_sensor.is_off: ha_connected    # <- block starts while HA is down
                       then:
-                        - logger.log: "Start suppressed: paused or heat mode not satisfied."
+                        - logger.log: "Start suppressed: paused, heat mode not satisfied, or HA offline."
                       else:
                         - text_sensor.template.publish:
                             id: humidifier_status
                             state: "starting"
                         - logger.log: "Setting furnace fan mode to on."
                         - lambda: |-
-                            id(prev_fan_mode) = id(fan_mode).state.c_str();  // save current fan mode
+                            id(prev_fan_mode) = id(fan_mode).state.c_str();  // save current mode
                         - homeassistant.service:
                             service: climate.set_fan_mode
                             data:
@@ -165,16 +193,19 @@ button:
                               - delay: 60s
                               - switch.turn_on: call_humid
                 else:
-                  # Currently ON -> stop with run-out and restore fan mode
                   - script.execute: shutdown_steam_and_fan_runout
 
 # ------------- Binary sensors -------------
 binary_sensor:
+  # HA connection state (internal) — used for gating & restore decisions
+  - platform: status
+    id: ha_connected
+    internal: true
+
   - platform: template
     id: heat_mode_satisfied
     internal: true
 
-  # Internal mirror of HA fan state; used for waits & safety
   - platform: template
     id: fan_running
     internal: true
@@ -269,7 +300,7 @@ sensor:
     id: diningroom_humid
     entity_id: sensor.esp_dining_room_env_humidity
 
-  # --- Combined temperature (new platform: combination type kalman) ---
+  # Combined temperature (ESPHome 2025.9+)
   - platform: combination
     type: kalman
     name: "Household Temperature"
@@ -293,7 +324,7 @@ sensor:
           outdoor_temp: !lambda "return float(id(outdoor_temp).state);"
           r_val: !lambda "return float(id(r_value).state);"
 
-  # --- Combined humidity (new platform: combination type kalman) ---
+  # Combined humidity
   - platform: combination
     type: kalman
     name: "Household Humidity"
@@ -312,7 +343,6 @@ sensor:
       - logger.log:
           format: "Household humidity changed to %.1f."
           args: [ 'id(indoor_humid).state' ]
-      # Only evaluation depends on humidity; throttling depends on temps/R/setpoint/hys
       - script.execute:
           id: eval_humid
           current_humid: !lambda "return float(x);"
@@ -328,7 +358,6 @@ text_sensor:
     id: humidifier_status
     icon: "mdi:air-humidifier"
 
-  # HA fan mode mirror + safety shutdown if fan goes off
   - platform: homeassistant
     id: fan_mode
     entity_id: climate.main_floor
@@ -347,7 +376,6 @@ text_sensor:
               - logger.log: "Fan turned off while steaming; performing safe shutdown."
               - script.execute: shutdown_steam_and_fan_runout
 
-  # HA HVAC mode mirror -> sets "heat mode satisfied" (unless override disabled)
   - platform: homeassistant
     id: heat_mode
     entity_id: climate.main_floor
@@ -362,12 +390,10 @@ text_sensor:
 
 # ------------- Scripts -------------
 script:
-  # Decide when to start/stop steam based on adjusted setpoint and hysteresis
   - id: eval_humid
     parameters:
       current_humid: float
     then:
-      # Turn ON if below (setpoint - hys/2), only if heat mode satisfied and currently OFF
       - if:
           condition:
             and:
@@ -379,7 +405,6 @@ script:
           then:
             - logger.log: "Need to turn ON the steam!"
             - button.press: toggle_steam
-      # Turn OFF if above (setpoint + hys/2), only if currently ON
       - if:
           condition:
             and:
@@ -391,15 +416,13 @@ script:
             - logger.log: "Need to turn OFF the steam!"
             - button.press: toggle_steam
 
-  # Compute dewpoint-throttled setpoint and publish adjusted value
   - id: update_max_throttled_humid
     parameters:
-      indoor_temp: float    # °F
-      outdoor_temp: float   # °F
+      indoor_temp: float
+      outdoor_temp: float
       r_val: float
     then:
       - lambda: |-
-          // Convert F->C
           double indoor_temp_c = 5.0/9.0 * (indoor_temp - 32.0);
           double outdoor_temp_c = 5.0/9.0 * (outdoor_temp - 32.0);
 
@@ -413,29 +436,20 @@ script:
             ESP_LOGD("lambda", "Adjusted humidity setpoint -> %d %%", adjusted);
           };
 
-          // Input guards
           if (isnan(indoor_temp_c) || isnan(outdoor_temp_c) || isnan(r_val)) {
             ESP_LOGE("lambda", "Temp and/or R-value is NaN. Throttling to 0.");
             publish_adjusted(0);
             return;
           }
 
-          // Clamp r_val to avoid div/0 and nonsense
-          if (r_val < 0.1) {
-            ESP_LOGW("lambda", "r_val too low (%.3f). Clamping to 0.1.", r_val);
-            r_val = 0.1;
-          }
-          if (r_val > 1000.0) {
-            ESP_LOGW("lambda", "r_val unrealistically high (%.1f). Clamping.", r_val);
-            r_val = 1000.0;
-          }
+          if (r_val < 0.1) { ESP_LOGW("lambda", "r_val too low (%.3f). Clamping to 0.1.", r_val); r_val = 0.1; }
+          if (r_val > 1000.0) { ESP_LOGW("lambda", "r_val unrealistically high (%.1f). Clamping.", r_val); r_val = 1000.0; }
 
           int user_sp = int(id(humid_setpoint).state);
           if (user_sp < 0) user_sp = 0;
           if (user_sp > 100) user_sp = 100;
 
           if (id(avoid_condensation).state) {
-            // Window interior surface temperature via simple R model
             double T_surface = indoor_temp_c - (indoor_temp_c - outdoor_temp_c) / r_val;
             double rh_at_condense = calc_relative_humidity(indoor_temp_c, T_surface);
 
@@ -455,7 +469,7 @@ script:
             publish_adjusted(user_sp);
           }
 
-  # Common shutdown path: stop steam, run fan for 10 min, and restore fan mode
+  # Safe shutdown. If HA is offline at the end of run-out, defer the fan restore.
   - id: shutdown_steam_and_fan_runout
     then:
       - if:
@@ -470,12 +484,19 @@ script:
             - switch.turn_off: call_humid
             - logger.log: "Waiting 10 mins to turn off furnace fan..."
             - delay: 10min
-            - homeassistant.service:
-                service: climate.set_fan_mode
-                data:
-                  entity_id: climate.main_floor
-                  fan_mode: !lambda 'return id(prev_fan_mode).c_str();'
-            - logger.log: "Furnace fan mode restored."
+            - if:
+                condition:
+                  binary_sensor.is_on: ha_connected
+                then:
+                  - homeassistant.service:
+                      service: climate.set_fan_mode
+                      data:
+                        entity_id: climate.main_floor
+                        fan_mode: !lambda 'return id(prev_fan_mode).c_str();'
+                  - logger.log: "Furnace fan mode restored."
+                else:
+                  - logger.log: "HA still offline; deferring fan-mode restore."
+                  - lambda: 'id(restore_fan_pending) = true;'
       - text_sensor.template.publish:
           id: humidifier_status
           state: "off"

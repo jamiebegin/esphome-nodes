@@ -5,9 +5,8 @@ substitutions:
   ip_addr: 192.168.4.30
   board: "huzzah"
 
-esphome:
+esp8266:
   board: ${board}
-  platform: ESP8266
 
 packages:
   basic: !include common/basic.yaml
