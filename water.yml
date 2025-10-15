@@ -22,46 +22,49 @@ sensor:
     unit_of_measurement: "%"
     state_class: measurement
     icon: "mdi:cup-water"
-    update_interval: 1min
+    update_interval: 60s
     expire_after: 24h
     accuracy_decimals: 0
     timeout: 1.2m            # speed up timeouts; tank < 1.2 m. Defaults to 2 m. 
     filters:
-      # 1) Smooth the *distance* first (in meters)
+      # A) operate on *distance* (x is in meters)
       - median:
-          window_size: 7
-          send_every: 3
+          window_size: 7       # ~7 minutes of readings
+          send_every: 1
           send_first_at: 1
-      # 2) Convert distance -> % full with correct linear mapping
+
+      # B) map distance -> % with correct linear mapping + outlier rejection
       - lambda: |-
-          // geometry (cm)
-          const float TANK_HEIGHT_CM = 102.0;   // total inside height
-          const float MIN_WATER_LEVEL_CM = 12.0; // brine height at salt-empty
-          const float GAP_FULL_CM = 10.0;        // sensor-to-salt gap when full
-          const float TOL_CM = 2.0;              // reject obvious outliers
+          // Geometry in centimeters
+          const float TANK_HEIGHT_CM = 102.0;
+          const float MIN_WATER_LEVEL_CM = 12.0;
+          const float GAP_FULL_CM = 10.0;
+          const float TOL_CM = 2.0;
 
           if (isnan(x)) return NAN;
 
-          const float d_cm = x * 100.0f;              // x is distance (m)
+          const float d_cm = x * 100.0f;                 // raw distance (cm)
           const float d_empty = TANK_HEIGHT_CM - MIN_WATER_LEVEL_CM;
           const float d_full  = GAP_FULL_CM;
 
-          // reject distances outside [d_full - tol, d_empty + tol]
-          if (d_cm < (d_full - TOL_CM) || d_cm > (d_empty + TOL_CM)) {
-            ESP_LOGW("salt_level", "Primary: out-of-range echo: %.1f cm", d_cm);
-            return NAN;
-          }
+          // reject clearly bogus echoes outside expected range (± tolerance)
+          if (d_cm < (d_full - TOL_CM) || d_cm > (d_empty + TOL_CM)) return NAN;
 
           float pct = 100.0f * (d_empty - d_cm) / (d_empty - d_full);
           if (pct < 0.0f)   pct = 0.0f;
           if (pct > 100.0f) pct = 100.0f;
-          ESP_LOGD("salt_level", "Primary: d=%.1f cm -> %.1f%%", d_cm, pct);
           return pct;
-      # 3) Drop invalids and reduce chatter:
+
+      # C) drop invalids produced by the lambda
       - filter_out: nan
-      - or:
-          - delta: 1.5        # publish immediately if change >= 1.5 %
-          - throttle: 10min   # otherwise, at most every 10 min
+
+      # D) light exponential smoothing on % to soften the remaining jitter
+      - exponential_moving_average:
+          alpha: 0.2          # higher = more responsive; 0.1–0.2 is a good start
+
+      # E) update only on real changes, but still send a heartbeat
+      - delta: 0.5            # publish immediately if change ≥ 0.5 %
+      - heartbeat: 10min      # otherwise, re‑publish the current value every 10 min
 
 
   - platform: ultrasonic
@@ -72,41 +75,49 @@ sensor:
     unit_of_measurement: "%"
     state_class: measurement
     icon: "mdi:cup-water"
-    update_interval: 1min
+    update_interval: 61s
     expire_after: 24h
     accuracy_decimals: 0
     timeout: 1.2m
     filters:
+      # A) operate on *distance* (x is in meters)
       - median:
-          window_size: 7
-          send_every: 3
+          window_size: 7       # ~7 minutes of readings
+          send_every: 1
           send_first_at: 1
+
+      # B) map distance -> % with correct linear mapping + outlier rejection
       - lambda: |-
-          const float TANK_HEIGHT_CM = 84.0;
+          // Geometry in centimeters
+          const float TANK_HEIGHT_CM = 84.0;   // 102.0 for primary tank
           const float MIN_WATER_LEVEL_CM = 12.0;
           const float GAP_FULL_CM = 10.0;
           const float TOL_CM = 2.0;
 
           if (isnan(x)) return NAN;
 
-          const float d_cm = x * 100.0f;
+          const float d_cm = x * 100.0f;                 // raw distance (cm)
           const float d_empty = TANK_HEIGHT_CM - MIN_WATER_LEVEL_CM;
           const float d_full  = GAP_FULL_CM;
 
-          if (d_cm < (d_full - TOL_CM) || d_cm > (d_empty + TOL_CM)) {
-            ESP_LOGW("salt_level", "Secondary: out-of-range echo: %.1f cm", d_cm);
-            return NAN;
-          }
+          // reject clearly bogus echoes outside expected range (± tolerance)
+          if (d_cm < (d_full - TOL_CM) || d_cm > (d_empty + TOL_CM)) return NAN;
 
           float pct = 100.0f * (d_empty - d_cm) / (d_empty - d_full);
           if (pct < 0.0f)   pct = 0.0f;
           if (pct > 100.0f) pct = 100.0f;
-          ESP_LOGD("salt_level", "Secondary: d=%.1f cm -> %.1f%%", d_cm, pct);
           return pct;
+
+      # C) drop invalids produced by the lambda
       - filter_out: nan
-      - or:
-          - delta: 1.5
-          - throttle: 10min
+
+      # D) light exponential smoothing on % to soften the remaining jitter
+      - exponential_moving_average:
+          alpha: 0.2          # higher = more responsive; 0.1–0.2 is a good start
+
+      # E) update only on real changes, but still send a heartbeat
+      - delta: 0.5            # publish immediately if change ≥ 0.5 %
+      - heartbeat: 10min      # otherwise, re‑publish the current value every 10 min
 
           
   - platform: mqtt_subscribe
