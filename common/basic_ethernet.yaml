@@ -1,0 +1,127 @@
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  name_add_mac_suffix: false
+  area: ${area}
+
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: !secret timezone
+    servers: !secret ntp_server
+
+mqtt:
+  broker: !secret mqtt_broker
+  topic_prefix: esphome/devices/${name}
+  birth_message:
+    topic: esphome/availability/${name}
+    payload: online
+  will_message:
+    topic: esphome/availability/${name}
+    payload: offline
+
+# #######################################
+debug:
+  update_interval: 5s
+
+logger:
+  level: debug
+  on_message:
+    - level: ERROR
+      then:
+        - mqtt.publish:
+            retain: false
+            qos: 1
+            topic: esphome/device_logs/${name}/error
+            payload: !lambda |-
+              // Use ESPHome's str_sprintf to avoid operator+ pitfalls and type issues.
+              return str_sprintf("Triggered on_message with level %d, tag %s and message %s",
+                                 level, tag, message);
+    - level: WARN
+      then:
+        - mqtt.publish:
+            retain: false
+            qos: 1          
+            topic: esphome/device_logs/${name}/warning
+            payload: !lambda |-
+              return str_sprintf("Triggered on_message with level %d, tag %s and message %s",
+                                 level, tag, message);
+
+api:
+
+ota:
+  - platform: esphome
+# #######################################
+
+switch:
+  - platform: restart
+    name: "Restart"
+  - platform: shutdown
+    name: "Shutdown"    
+  - platform: factory_reset
+    name: "Factory Reset"
+
+button:
+  - platform: safe_mode
+    name: "Safe Mode Boot"
+    entity_category: diagnostic
+
+binary_sensor:
+  - platform: status
+    name: "Status"
+
+sensor:
+  - platform: uptime
+    name: Uptime
+    expire_after: 15min
+
+  - platform: debug
+    free:
+      name: "Heap Free"
+    block:
+      name: "Heap Max Block"
+    loop_time:
+      name: "Loop Time"
+      filters:
+        - max:
+            window_size: 12
+            send_every: 6
+            send_first_at: 3
+
+text_sensor:
+  - platform: version
+    name: "ESPHome Version"
+    icon: "mdi:chip"
+
+  - platform: debug
+    device:
+      name: "Device Info"
+    reset_reason:
+      name: "Reset Reason"
+
+  - platform: ethernet_info
+    ip_address:
+      name: "IP Address"
+      address_0:
+        name:  "IP Address 0"
+      address_1:
+        name: "IP Address 1"
+      address_2:
+        name: "IP Address 2"
+      address_3:
+        name: "IP Address 3"
+      address_4:
+        name: "IP Address 4"
+    dns_address:
+      name: "DNS Address"
+    mac_address:
+      name: "MAC Address"
+
+  - platform: template
+    name: "Board"
+    icon: "mdi:expansion-card"
+    update_interval: 5d
+    lambda: |-
+      // Return a std::string directly; don't call std::to_string on a C-string.
+      return std::string("${board}");
+              
