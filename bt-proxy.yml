@@ -1,7 +1,9 @@
 substitutions:
-  name: bluetooth-proxy
-  friendly_name: Bluetooth Proxy
+  name: esp32-bt-proxy-floor1
+  area: "Family Room"
+  friendly_name: "BT Proxy Floor 1"
   ip_addr: 192.168.7.239
+  board: "esp32-poe-iso"
 
 esphome:
   name: ${name}

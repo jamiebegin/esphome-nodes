@@ -1,0 +1,44 @@
+substitutions:
+  name: esp32-bt-proxy-floor1
+  area: "Family Room"
+  friendly_name: "BT Proxy Floor 1"
+  ip_addr: 192.168.7.239
+  board: "esp32-poe-iso"
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  name_add_mac_suffix: false
+
+esp32:
+  board: ${board}
+  framework:
+    type: esp-idf
+
+packages:
+  basic: !include common/basic_ethernet.yaml
+
+ethernet:
+  type: LAN8720
+  mdc_pin: GPIO23
+  mdio_pin: GPIO18
+  clk_mode: GPIO17_OUT
+  phy_addr: 0
+  power_pin: GPIO12
+  
+  manual_ip:
+    static_ip: ${ip_addr}
+    gateway: !secret gateway
+    subnet: !secret subnet
+    dns1: !secret dns_server
+  domain: !secret domain
+
+esp32_ble_tracker:
+  scan_parameters:
+    interval: 1100ms
+    window: 1100ms
+    active: true
+
+bluetooth_proxy:
+  active: true
+  connection_slots: 3
