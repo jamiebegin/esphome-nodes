@@ -15,74 +15,74 @@ esp32:
   board: ${board}
   variant: esp32c3
   framework:
-    type: arduino
+    type: esp-idf
 
 packages:
   basic: !include common/basic.yaml
 
-# external_components:
-#   - source: github://echavet/MitsubishiCN105ESPHome
+external_components:
+  - source: github://echavet/MitsubishiCN105ESPHome
 
-# uart:
-#   id: HP_UART
-#   baud_rate: 2400
-#   tx_pin: GPIO21
-#   rx_pin: GPIO20
+uart:
+  id: HP_UART
+  baud_rate: 2400
+  tx_pin: GPIO21
+  rx_pin: GPIO20
 
-# climate:
-#   - platform: cn105
-#     id: minisplit
-#     name: "Office Minisplit"
-#     icon: mdi:heat-pump
-#     visual:
-#       min_temperature: 10
-#       max_temperature: 31
-#       temperature_step:
-#         target_temperature: 1
-#         current_temperature: 0.1
-#     compressor_frequency_sensor:
-#       name: Compressor Frequency
-#     vertical_vane_select:
-#       name: Vertical Vane
-#     horizontal_vane_select:
-#       name: Horizontal Vane
-#     isee_sensor:
-#       name: iSee Sensor
-#     remote_temperature_timeout: 30min
-#     debounce_delay : 100ms
-#     update_interval: 4s
+climate:
+  - platform: cn105
+    id: minisplit
+    name: "Office Minisplit"
+    icon: mdi:heat-pump
+    visual:
+      min_temperature: 10
+      max_temperature: 31
+      temperature_step:
+        target_temperature: 1
+        current_temperature: 0.1
+    compressor_frequency_sensor:
+      name: Compressor Frequency
+    vertical_vane_select:
+      name: Vertical Vane
+    horizontal_vane_select:
+      name: Horizontal Vane
+    isee_sensor:
+      name: iSee Sensor
+    remote_temperature_timeout: 30min
+    debounce_delay : 100ms
+    update_interval: 4s
 
 #     # Added Oct 14, 2025
-#     fahrenheit_compatibility: true
-#     stage_sensor:
-#       name: Stage
-#       use_as_operating_fallback: true     # set to true if your unit doesn't provide activity indicator
-#       entity_category: diagnostic
-#       disabled_by_default: false
-#     circulator_switch:
-#       name: Circulator
-#       disabled_by_default: false
-#     airflow_control_select:
-#       name: Airflow Control
-#       disabled_by_default: false
+    fahrenheit_compatibility: true
+    stage_sensor:
+      name: Stage
+      use_as_operating_fallback: true     # set to true if your unit doesn't provide activity indicator
+      entity_category: diagnostic
+      disabled_by_default: false
+    circulator_switch:
+      name: Circulator
+      disabled_by_default: false
+    airflow_control_select:
+      name: Airflow Control
+      disabled_by_default: false
 
-# sensor:
-#   - platform: homeassistant
-#     id: office_env_temp_in_c
-#     entity_id: sensor.esp32_office_env_temperature
-#     filters:
-#       - lambda: "return (x - 32.0) * (5.0/9.0);"
-#     on_value:
-#       then:
-#         - lambda: 'id(minisplit).set_remote_temperature(x);'
+sensor:
+  - platform: homeassistant
+    id: office_env_temp_in_c
+    entity_id: sensor.esp32_office_env_temperature
+    filters:
+      - lambda: "return (x - 32.0) * (5.0/9.0);"
+    on_value:
+      then:
+        - lambda: 'id(minisplit).set_remote_temperature(x);'
 
-# switch:
-#   - platform: template
-#     id: away_mode
-#     name: "Away Mode"
-#     optimistic: true
-#     icon: "mdi:home-export-outline"
-#     restore_mode: "ALWAYS_OFF"
+switch:
+  - platform: template
+    id: away_mode
+    name: "Away Mode"
+    optimistic: true
+    icon: "mdi:home-export-outline"
+    restore_mode: "ALWAYS_OFF"
 
 logger:
   # level: INFO
