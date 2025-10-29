@@ -1,8 +1,8 @@
 substitutions:
-  name: esp32-bt-proxy-floor1
-  area: "Family Room"
-  friendly_name: "BT Proxy Floor 1"
-  ip_addr: 192.168.7.239
+  name: esp32-office-bt-proxy
+  area: "Office"
+  friendly_name: "Office BT Proxy"
+  ip_addr: 192.168.7.238
   board: "esp32-poe-iso"
 
 esphome:
