@@ -1,0 +1,42 @@
+substitutions:
+  name: esp32-kitchen-fridge
+  friendly_name: "Kitchen Fridge"
+  area: "Kitchen"
+  ip_addr: 192.168.4.37
+  bme280_temperature_offset: "-0.5"
+  battery_capacity: 6600
+  board: "featheresp32"
+
+esp32:
+  board: ${board}
+  framework:
+    type: arduino
+
+packages:
+  basic: !include common/basic.yaml
+  bme680: !include common/bme280.yaml
+
+deep_sleep:
+  run_duration: 10s
+  sleep_duration: 5min
+
+sensor:
+  - platform: lc709203f
+    size: 3000
+    voltage: 3.7
+    battery_voltage:
+      name: "Battery Voltage"
+    battery_level:
+      name: "Battery"
+      force_update: true
+      expire_after: 60min
+      accuracy_decimals: 0
+      filters:
+        - clamp:
+            max_value: 100
+        - multiply: !lambda return 2.2;
+
+  - platform: template
+    name: "Wakeup Cause"
+    accuracy_decimals: 0
+    lambda: return esp_sleep_get_wakeup_cause();

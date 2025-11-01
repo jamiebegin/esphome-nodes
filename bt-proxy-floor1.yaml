@@ -30,10 +30,10 @@ ethernet:
   
   manual_ip:
     static_ip: ${ip_addr}
-    gateway: !secret gateway
+    gateway: !secret gateway_ethernet
     subnet: !secret subnet
     dns1: !secret dns_server
-  domain: !secret domain
+  domain: !secret domain_ethernet
 
 esp32_ble:
   max_connections: 5
