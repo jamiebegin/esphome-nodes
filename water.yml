@@ -63,7 +63,7 @@ sensor:
           alpha: 0.2          # higher = more responsive; 0.1–0.2 is a good start
 
       # E) update only on real changes, but still send a heartbeat
-      - delta: 0.5            # publish immediately if change ≥ 0.5 %
+      - delta: 5            # publish immediately if change ≥ 5 %
       - heartbeat: 10min      # otherwise, re‑publish the current value every 10 min
 
 
@@ -89,7 +89,7 @@ sensor:
       # B) map distance -> % with correct linear mapping + outlier rejection
       - lambda: |-
           // Geometry in centimeters
-          const float TANK_HEIGHT_CM = 84.0;   // 102.0 for primary tank
+          const float TANK_HEIGHT_CM = 84.0;
           const float MIN_WATER_LEVEL_CM = 12.0;
           const float GAP_FULL_CM = 10.0;
           const float TOL_CM = 2.0;
@@ -116,7 +116,7 @@ sensor:
           alpha: 0.2          # higher = more responsive; 0.1–0.2 is a good start
 
       # E) update only on real changes, but still send a heartbeat
-      - delta: 0.5            # publish immediately if change ≥ 0.5 %
+      - delta: 5            # publish immediately if change ≥ 5 %
       - heartbeat: 10min      # otherwise, re‑publish the current value every 10 min
 
           
