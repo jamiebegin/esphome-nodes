@@ -56,7 +56,7 @@ climate:
     fahrenheit_compatibility: true
     stage_sensor:
       name: Stage
-      use_as_operating_fallback: true     # set to true if your unit doesn't provide activity indicator
+      use_as_operating_fallback: false     # set to true if your unit doesn't provide activity indicator
       entity_category: diagnostic
       disabled_by_default: false
     circulator_switch:
