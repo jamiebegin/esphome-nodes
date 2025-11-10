@@ -3,7 +3,7 @@ substitutions:
   friendly_name: "Kitchen Fridge"
   area: "Kitchen"
   ip_addr: 192.168.4.37
-  bme280_temperature_offset: "-0.5"
+  bme280_temperature_offset: "0.5"
   battery_capacity: 6600
   board: "featheresp32"
 

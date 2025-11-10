@@ -23,13 +23,13 @@ packages:
 
 output:
   - platform: ledc
-    pin: GPIO17
+    pin: GPIO26
     id: cold_white_out
     frequency: "4882Hz"
     inverted: false
 
   - platform: ledc
-    pin: GPIO16
+    pin: GPIO27
     id: warm_white_out
     frequency: "4882Hz"
     inverted: false
