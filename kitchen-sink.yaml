@@ -10,7 +10,7 @@ substitutions:
   area: "Kitchen"
   ip_addr: 192.168.4.33
   board: "nodemcu-32s"
-  bme680_temperature_offset: "-0.7"
+  bme680_temperature_offset: "-1.7"
   
 esp32:
   board: ${board}
